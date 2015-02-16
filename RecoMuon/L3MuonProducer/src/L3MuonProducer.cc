@@ -23,6 +23,7 @@
 #include "RecoMuon/TrackingTools/interface/MuonTrackFinder.h"
 #include "RecoMuon/TrackingTools/interface/MuonTrackLoader.h"
 #include "RecoMuon/TrackingTools/interface/MuonServiceProxy.h"
+#include "RecoMuon/GlobalTrackingTools/interface/MuonTrackingRegionBuilder.h"
 
 
 using namespace edm;
@@ -150,4 +151,12 @@ void L3MuonProducer::produce(Event& event, const EventSetup& eventSetup) {
                    <<"================================"
                    <<endl<<endl;
     
+}
+
+void L3MuonProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+    edm::ParameterSetDescription desc;
+    edm::ParameterSetDescription descTrajBuilder;
+    MuonTrackingRegionBuilder::fillDescriptions(descTrajBuilder);
+    desc.add("L3TrajBuilderParameters",descTrajBuilder);
+    descriptions.add(std::string("hlt")+std::string(typeid(L3MuonProducer).name()), desc);
 }
