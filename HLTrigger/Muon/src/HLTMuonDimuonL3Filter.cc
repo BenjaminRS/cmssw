@@ -205,17 +205,12 @@ HLTMuonDimuonL3Filter::hltFilter(edm::Event& iEvent, const edm::EventSetup& iSet
 	for(auto const & link : *links){
 	  TrackRef tk = cand->track();
 
-	  // Using the same method that was used to create the links between L3 and L2
-	  // ToDo: there should be a better way than dR,dPt matching
-	  const reco::Track& globalTrack = *link.globalTrack();
-	  float dR2 = deltaR2(tk->eta(),tk->phi(),globalTrack.eta(),globalTrack.phi());
-	  float dPt = std::abs(tk->pt() - globalTrack.pt())/tk->pt();
-          const TrackRef staTrack = link.standAloneTrack();
-	  if (dR2 < 0.02*0.02 and dPt < 0.001 and previousCandIsL2_) {
+	  if (link.trackerTrack() == cand->track() and previousCandIsL2_){
+              const TrackRef staTrack = link.standAloneTrack();
 	      L2toL3s[staTrack].push_back(RecoChargedCandidateRef(cand));
 	  }
 	  else if (not previousCandIsL2_){
-	      L2toL3s[staTrack].push_back(RecoChargedCandidateRef(cand));
+	      L2toL3s[tk].push_back(RecoChargedCandidateRef(cand));
 	  }
         } //MTL loop
      } //RCC loop

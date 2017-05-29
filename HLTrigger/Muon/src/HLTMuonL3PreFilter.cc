@@ -173,14 +173,7 @@ bool HLTMuonL3PreFilter::hltFilter(Event& iEvent, const EventSetup& iSetup, trig
      for(unsigned int i(0); i < mucands->size(); ++i){
 	RecoChargedCandidateRef cand(mucands,i);
 	for(auto const & link : *links){
-	  TrackRef tk = cand->track();
-
-	  // Using the same method that was used to create the links between L3 and L2
-	  // ToDo: there should be a better way than dR,dPt matching
-	  const reco::Track& globalTrack = *link.globalTrack();
-	  float dR2 = deltaR2(tk->eta(),tk->phi(),globalTrack.eta(),globalTrack.phi());
-	  float dPt = std::abs(tk->pt() - globalTrack.pt())/tk->pt();
-	  if (dR2 < 0.02*0.02 and dPt < 0.001) {
+	  if (link.trackerTrack() == cand->track()){
 	      const TrackRef staTrack = link.standAloneTrack();
 	      L2toL3s[staTrack].push_back(RecoChargedCandidateRef(cand));
 	  }
