@@ -74,15 +74,15 @@ VertexProducer = cms.EDProducer('VertexProducer',
         GenVxSmear = cms.double(0.2),
         # Track weight graph CNN
         # CNNTrackWeightGraph = cms.string("../../VertexFinder/data/weightModelgraph.pb"),
-        CNNTrackWeightGraph = cms.string("weightModelgraph.pb"),
+        CNNTrackWeightGraph = cms.string("L1Trigger/VertexFinder/data/Quantised_model_prune_iteration_9_weightModelgraph.pb"),
         # CNNTrackWeightGraph = cms.string("Unquantised_model_weightModelgraph.pb"),        
         # Track position graph CNN
         # CNNPVZ0Graph = cms.string("../../VertexFinder/data/patternModelgraph.pb"),
-        CNNPVZ0Graph = cms.string("patternModelgraph.pb"),
+        CNNPVZ0Graph = cms.string("L1Trigger/VertexFinder/data/Quantised_model_prune_iteration_9_patternModelgraph.pb"),
         # CNNPVZ0Graph = cms.string("Unquantised_model_patternModelgraph.pb"),
         # Associated tracks to vertex CNN
         # CNNGraph = cms.string("../../VertexFinder/data/asociationModelgraph.pb")
-        CNNGraph = cms.string("asociationModelgraph.pb")
+        CNNGraph = cms.string("L1Trigger/VertexFinder/data/Quantised_model_prune_iteration_9_associationModelgraph.pb")
         # CNNGraph = cms.string("Unquantised_model_associationModelgraph.pb")
     ),
   # Debug printout

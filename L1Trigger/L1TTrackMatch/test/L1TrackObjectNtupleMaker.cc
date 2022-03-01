@@ -130,6 +130,7 @@ private:
   bool SaveTrackMET;
 
   edm::InputTag L1TrackInputTag;               // L1 track collection
+  edm::InputTag L1GTTTrackInputTag;               // L1 GTT track collection
   edm::InputTag MCTruthTrackInputTag;          // MC truth collection
   edm::InputTag L1TrackExtendedInputTag;       // L1 track collection
   edm::InputTag MCTruthTrackExtendedInputTag;  // MC truth collection
@@ -141,6 +142,7 @@ private:
   edm::InputTag GenJetInputTag;
   edm::InputTag RecoVertexInputTag;
   edm::InputTag GenParticleInputTag;
+  edm::InputTag GenVertexInputTag;
 
   edm::InputTag TrackFastJetsInputTag;
   edm::InputTag TrackJetsInputTag;
@@ -160,6 +162,7 @@ private:
   edm::EDGetTokenT<TTStubAssociationMap<Ref_Phase2TrackerDigi_> > ttStubMCTruthToken_;
 
   edm::EDGetTokenT<std::vector<TTTrack<Ref_Phase2TrackerDigi_> > > ttTrackToken_;
+  edm::EDGetTokenT<std::vector<TTTrack<Ref_Phase2TrackerDigi_> > > GTTttTrackToken_;
   edm::EDGetTokenT<TTTrackAssociationMap<Ref_Phase2TrackerDigi_> > ttTrackMCTruthToken_;
   edm::EDGetTokenT<std::vector<TTTrack<Ref_Phase2TrackerDigi_> > > ttTrackExtendedToken_;
   edm::EDGetTokenT<TTTrackAssociationMap<Ref_Phase2TrackerDigi_> > ttTrackMCTruthExtendedToken_;
@@ -169,6 +172,7 @@ private:
 
   edm::EDGetTokenT<std::vector<reco::GenJet> > GenJetToken_;
   edm::EDGetTokenT<std::vector<reco::GenParticle> > GenParticleToken_;
+  edm::EDGetTokenT<HepMCProduct> GenVertexToken_;
   edm::EDGetTokenT<l1t::VertexCollection> L1VertexToken_;
 
   edm::EDGetTokenT<std::vector<l1t::TkJet> > TrackFastJetsToken_;
@@ -238,6 +242,23 @@ private:
   std::vector<float>* m_trk_matchtp_z0;
   std::vector<float>* m_trk_matchtp_dxy;
 
+  // All GTT tracks
+
+  std::vector<unsigned int>*  m_trk_word_valid;
+  std::vector<unsigned int>*  m_trk_word_InvR;
+  std::vector<unsigned int>*  m_trk_word_pT;
+  std::vector<unsigned int>*  m_trk_word_Phi;
+  std::vector<unsigned int>*  m_trk_word_TanL;
+  std::vector<unsigned int>*  m_trk_word_eta;
+  std::vector<unsigned int>*  m_trk_word_Z0;
+  std::vector<unsigned int>*  m_trk_word_D0;
+  std::vector<unsigned int>*  m_trk_word_chi2rphi;
+  std::vector<unsigned int>*  m_trk_word_chi2rz;
+  std::vector<unsigned int>*  m_trk_word_bendchi2;
+  std::vector<unsigned int>*  m_trk_word_hitpattern;
+  std::vector<unsigned int>*  m_trk_word_MVAquality;
+  std::vector<unsigned int>*  m_trk_word_MVAother;
+
   // all L1 tracks (extended)
   std::vector<float>* m_trkExt_pt;
   std::vector<float>* m_trkExt_eta;
@@ -250,7 +271,8 @@ private:
   std::vector<float>* m_trkExt_chi2rphi;
   std::vector<float>* m_trkExt_chi2rz;
   std::vector<float>* m_trkExt_bendchi2;
-  std::vector<float>* m_trkExt_MVA;
+  std::vector<float>* m_trkExt_MVA1;
+  std::vector<float>* m_trkExt_MVA2;
   std::vector<int>* m_trkExt_nstub;
   std::vector<int>* m_trkExt_lhits;
   std::vector<int>* m_trkExt_dhits;
@@ -314,7 +336,8 @@ private:
   std::vector<float>* m_matchtrkExt_chi2rphi;
   std::vector<float>* m_matchtrkExt_chi2rz;
   std::vector<float>* m_matchtrkExt_bendchi2;
-  std::vector<float>* m_matchtrkExt_MVA;
+  std::vector<float>* m_matchtrkExt_MVA1;
+  std::vector<float>* m_matchtrkExt_MVA2;
   std::vector<int>* m_matchtrkExt_nstub;
   std::vector<int>* m_matchtrkExt_lhits;
   std::vector<int>* m_matchtrkExt_dhits;
@@ -447,9 +470,11 @@ L1TrackObjectNtupleMaker::L1TrackObjectNtupleMaker(edm::ParameterSet const& iCon
   GenJetInputTag = iConfig.getParameter<edm::InputTag>("GenJetInputTag");
   RecoVertexInputTag = iConfig.getParameter<InputTag>("RecoVertexInputTag");
   GenParticleInputTag = iConfig.getParameter<InputTag>("GenParticleInputTag");
+  GenVertexInputTag   = iConfig.getParameter<InputTag >("GenVertexInputTag");
 
   if (Displaced == "Prompt" || Displaced == "Both") {
     L1TrackInputTag = iConfig.getParameter<edm::InputTag>("L1TrackInputTag");
+    L1GTTTrackInputTag = iConfig.getParameter<edm::InputTag>("L1GTTTrackInputTag");
     MCTruthTrackInputTag = iConfig.getParameter<edm::InputTag>("MCTruthTrackInputTag");
     TrackFastJetsInputTag = iConfig.getParameter<InputTag>("TrackFastJetsInputTag");
     TrackJetsInputTag = iConfig.getParameter<InputTag>("TrackJetsInputTag");
@@ -458,6 +483,7 @@ L1TrackObjectNtupleMaker::L1TrackObjectNtupleMaker(edm::ParameterSet const& iCon
     TrackMHTInputTag = iConfig.getParameter<InputTag>("TrackMHTInputTag");
 
     ttTrackToken_ = consumes<std::vector<TTTrack<Ref_Phase2TrackerDigi_> > >(L1TrackInputTag);
+    GTTttTrackToken_ = consumes<std::vector<TTTrack<Ref_Phase2TrackerDigi_> > >(L1GTTTrackInputTag);
     ttTrackMCTruthToken_ = consumes<TTTrackAssociationMap<Ref_Phase2TrackerDigi_> >(MCTruthTrackInputTag);
     TrackFastJetsToken_ = consumes<std::vector<l1t::TkJet> >(TrackFastJetsInputTag);
     TrackJetsToken_ = consumes<l1t::TkJetCollection>(TrackJetsInputTag);
@@ -493,6 +519,8 @@ L1TrackObjectNtupleMaker::L1TrackObjectNtupleMaker(edm::ParameterSet const& iCon
   GenJetToken_ = consumes<std::vector<reco::GenJet> >(GenJetInputTag);
   GenParticleToken_ = consumes<std::vector<reco::GenParticle> >(GenParticleInputTag);
   L1VertexToken_ = consumes<l1t::VertexCollection>(RecoVertexInputTag);
+  GenVertexToken_ = consumes<HepMCProduct>(GenVertexInputTag);
+
 }
 
 /////////////
@@ -551,6 +579,21 @@ void L1TrackObjectNtupleMaker::beginJob() {
   m_trk_matchtp_z0 = new std::vector<float>;
   m_trk_matchtp_dxy = new std::vector<float>;
 
+  m_trk_word_valid = new std::vector<unsigned int>;
+  m_trk_word_InvR = new std::vector<unsigned int>;
+  m_trk_word_pT = new std::vector<unsigned int>;
+  m_trk_word_Phi = new std::vector<unsigned int>;
+  m_trk_word_TanL = new std::vector<unsigned int>;
+  m_trk_word_eta = new std::vector<unsigned int>;
+  m_trk_word_Z0 = new std::vector<unsigned int>;
+  m_trk_word_D0 = new std::vector<unsigned int>;
+  m_trk_word_chi2rphi = new std::vector<unsigned int>;
+  m_trk_word_chi2rz = new std::vector<unsigned int>;
+  m_trk_word_bendchi2 = new std::vector<unsigned int>;
+  m_trk_word_hitpattern = new std::vector<unsigned int>;
+  m_trk_word_MVAquality = new std::vector<unsigned int>;
+  m_trk_word_MVAother = new std::vector<unsigned int>;
+
   m_trkExt_pt = new std::vector<float>;
   m_trkExt_eta = new std::vector<float>;
   m_trkExt_phi = new std::vector<float>;
@@ -562,7 +605,8 @@ void L1TrackObjectNtupleMaker::beginJob() {
   m_trkExt_chi2rphi = new std::vector<float>;
   m_trkExt_chi2rz = new std::vector<float>;
   m_trkExt_bendchi2 = new std::vector<float>;
-  m_trkExt_MVA = new std::vector<float>;
+  m_trkExt_MVA1 = new std::vector<float>;
+  m_trkExt_MVA2 = new std::vector<float>;
   m_trkExt_nstub = new std::vector<int>;
   m_trkExt_lhits = new std::vector<int>;
   m_trkExt_dhits = new std::vector<int>;
@@ -628,7 +672,8 @@ void L1TrackObjectNtupleMaker::beginJob() {
   m_matchtrkExt_chi2rphi = new std::vector<float>;
   m_matchtrkExt_chi2rz = new std::vector<float>;
   m_matchtrkExt_bendchi2 = new std::vector<float>;
-  m_matchtrkExt_MVA = new std::vector<float>;
+  m_matchtrkExt_MVA1 = new std::vector<float>;
+  m_matchtrkExt_MVA2 = new std::vector<float>;
   m_matchtrkExt_nstub = new std::vector<int>;
   m_matchtrkExt_dhits = new std::vector<int>;
   m_matchtrkExt_lhits = new std::vector<int>;
@@ -761,6 +806,21 @@ void L1TrackObjectNtupleMaker::beginJob() {
     //   eventTree->Branch("trk_injet_highpt", &m_trk_injet_highpt);
     //   eventTree->Branch("trk_injet_vhighpt", &m_trk_injet_vhighpt);
     // }
+
+    eventTree->Branch("trk_word_valid",&m_trk_word_valid);
+    eventTree->Branch("trk_word_InvR",&m_trk_word_InvR);
+    eventTree->Branch("trk_word_pT",&m_trk_word_pT);
+    eventTree->Branch("trk_word_Phi",&m_trk_word_Phi);
+    eventTree->Branch("trk_word_TanL",&m_trk_word_TanL);
+    eventTree->Branch("trk_word_eta",&m_trk_word_eta);
+    eventTree->Branch("trk_word_Z0",&m_trk_word_Z0);
+    eventTree->Branch("trk_word_D0",&m_trk_word_D0);
+    eventTree->Branch("trk_word_chi2rphi",&m_trk_word_chi2rphi);
+    eventTree->Branch("trk_word_chi2rz",&m_trk_word_chi2rz);
+    eventTree->Branch("trk_word_bendchi2",&m_trk_word_bendchi2);
+    eventTree->Branch("trk_word_hitpattern",&m_trk_word_hitpattern);
+    eventTree->Branch("trk_word_MVAquality",&m_trk_word_MVAquality);
+    eventTree->Branch("trk_word_MVAother",&m_trk_word_MVAother);
   }
 
   if (SaveAllTracks && (Displaced == "Displaced" || Displaced == "Both")) {
@@ -775,7 +835,8 @@ void L1TrackObjectNtupleMaker::beginJob() {
     eventTree->Branch("trkExt_chi2rphi", &m_trkExt_chi2rphi);
     eventTree->Branch("trkExt_chi2rz", &m_trkExt_chi2rz);
     eventTree->Branch("trkExt_bendchi2", &m_trkExt_bendchi2);
-    eventTree->Branch("trkExt_MVA", &m_trkExt_MVA);
+    eventTree->Branch("trkExt_MVA1", &m_trkExt_MVA1);
+    eventTree->Branch("trkExt_MVA2", &m_trkExt_MVA2);
     eventTree->Branch("trkExt_nstub", &m_trkExt_nstub);
     eventTree->Branch("trkExt_lhits", &m_trkExt_lhits);
     eventTree->Branch("trkExt_dhits", &m_trkExt_dhits);
@@ -854,7 +915,8 @@ void L1TrackObjectNtupleMaker::beginJob() {
     eventTree->Branch("matchtrkExt_chi2rphi", &m_matchtrkExt_chi2rphi);
     eventTree->Branch("matchtrkExt_chi2rz", &m_matchtrkExt_chi2rz);
     eventTree->Branch("matchtrkExt_bendchi2", &m_matchtrkExt_bendchi2);
-    eventTree->Branch("matchtrkExt_MVA", &m_matchtrkExt_MVA);
+    eventTree->Branch("matchtrkExt_MVA1", &m_matchtrkExt_MVA1);
+    eventTree->Branch("matchtrkExt_MVA2", &m_matchtrkExt_MVA2);
     eventTree->Branch("matchtrkExt_nstub", &m_matchtrkExt_nstub);
     eventTree->Branch("matchtrkExt_lhits", &m_matchtrkExt_lhits);
     eventTree->Branch("matchtrkExt_dhits", &m_matchtrkExt_dhits);
@@ -893,8 +955,8 @@ void L1TrackObjectNtupleMaker::beginJob() {
   //   eventTree->Branch("jet_trk_sumpt", &m_jet_trk_sumpt);
   //   eventTree->Branch("jet_matchtrk_sumpt", &m_jet_matchtrk_sumpt);
   // }
-  if (SaveTrackJets) {
-    // eventTree->Branch("pv_L1recotruesumpt", &m_pv_L1recotruesumpt);
+
+      // eventTree->Branch("pv_L1recotruesumpt", &m_pv_L1recotruesumpt);
     // eventTree->Branch("pv_L1recosumpt", &m_pv_L1recosumpt);
     eventTree->Branch("pv_L1reco", &m_pv_L1reco);
     eventTree->Branch("pv_L1reco_sum", &m_pv_L1reco_sum);
@@ -908,6 +970,8 @@ void L1TrackObjectNtupleMaker::beginJob() {
     eventTree->Branch("gen_phi", &m_gen_phi);
     eventTree->Branch("gen_pdgid", &m_gen_pdgid);
     eventTree->Branch("gen_z0", &m_gen_z0);
+  if (SaveTrackJets) {
+
 
     if (Displaced == "Prompt" || Displaced == "Both") {
       eventTree->Branch("2ltrkjet_eta", &m_2ltrkjet_eta);
@@ -1028,6 +1092,21 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
     m_trk_matchtp_phi->clear();
     m_trk_matchtp_z0->clear();
     m_trk_matchtp_dxy->clear();
+
+    m_trk_word_valid->clear();
+    m_trk_word_InvR->clear();
+    m_trk_word_pT->clear();
+    m_trk_word_Phi->clear();
+    m_trk_word_TanL->clear();
+    m_trk_word_eta->clear();
+    m_trk_word_Z0->clear();
+    m_trk_word_D0->clear();
+    m_trk_word_chi2rphi->clear();
+    m_trk_word_chi2rz->clear();
+    m_trk_word_bendchi2->clear();
+    m_trk_word_hitpattern->clear();
+    m_trk_word_MVAquality->clear();
+    m_trk_word_MVAother->clear();
   }
   if (SaveAllTracks && (Displaced == "Displaced" || Displaced == "Both")) {
     m_trkExt_pt->clear();
@@ -1041,7 +1120,8 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
     m_trkExt_chi2rphi->clear();
     m_trkExt_chi2rz->clear();
     m_trkExt_bendchi2->clear();
-    m_trkExt_MVA->clear();
+    m_trkExt_MVA1->clear();
+    m_trkExt_MVA2->clear();
     m_trkExt_nstub->clear();
     m_trkExt_lhits->clear();
     m_trkExt_dhits->clear();
@@ -1110,7 +1190,8 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
     m_matchtrkExt_chi2rphi->clear();
     m_matchtrkExt_chi2rz->clear();
     m_matchtrkExt_bendchi2->clear();
-    m_matchtrkExt_MVA->clear();
+    m_matchtrkExt_MVA1->clear();
+    m_matchtrkExt_MVA2->clear();
     m_matchtrkExt_nstub->clear();
     m_matchtrkExt_lhits->clear();
     m_matchtrkExt_dhits->clear();
@@ -1142,6 +1223,17 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
   // m_jet_tp_sumpt->clear();
   // m_jet_trk_sumpt->clear();
   // m_jet_matchtrk_sumpt->clear();
+
+
+    // m_pv_L1recotruesumpt->clear();
+    // m_pv_L1recosumpt->clear();
+    m_pv_L1reco->clear();
+    m_pv_L1reco_sum->clear();
+    // m_pv_L1TPsumpt->clear();
+    // m_pv_L1TP->clear();
+    m_pv_MC->clear();
+    m_MC_lep->clear();
+    // m_pv_MCChgSumpT->clear();
 
   if (SaveTrackJets) {
     if (Displaced == "Prompt" || Displaced == "Both") {
@@ -1184,16 +1276,6 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
       m_trkjetExt_truetp_sumpt->clear();
       m_trkjetExt_tp_sumpt->clear();
     }
-
-    // m_pv_L1recotruesumpt->clear();
-    // m_pv_L1recosumpt->clear();
-    m_pv_L1reco->clear();
-    m_pv_L1reco_sum->clear();
-    // m_pv_L1TPsumpt->clear();
-    // m_pv_L1TP->clear();
-    m_pv_MC->clear();
-    m_MC_lep->clear();
-    // m_pv_MCChgSumpT->clear();
   }
 
     if (SaveTrackJetsEmulation) {	
@@ -1254,6 +1336,9 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
   edm::Handle<std::vector<reco::GenParticle> > GenParticleHandle;
   iEvent.getByToken(GenParticleToken_, GenParticleHandle);
 
+  edm::Handle<HepMCProduct> GenVertexHandle;
+  iEvent.getByToken(GenVertexToken_, GenVertexHandle);
+
   //Vertex
   edm::Handle<l1t::VertexCollection> L1TkPrimaryVertexHandle;
   iEvent.getByToken(L1VertexToken_, L1TkPrimaryVertexHandle);
@@ -1277,6 +1362,7 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
 
   // L1 tracks
   edm::Handle<std::vector<TTTrack<Ref_Phase2TrackerDigi_> > > TTTrackHandle;
+  edm::Handle<std::vector<TTTrack<Ref_Phase2TrackerDigi_> > > GTTTTTrackHandle;
   edm::Handle<std::vector<TTTrack<Ref_Phase2TrackerDigi_> > > TTTrackExtendedHandle;
   edm::Handle<TTTrackAssociationMap<Ref_Phase2TrackerDigi_> > MCTruthTTTrackHandle;
   edm::Handle<TTTrackAssociationMap<Ref_Phase2TrackerDigi_> > MCTruthTTTrackExtendedHandle;
@@ -1289,6 +1375,7 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
     iEvent.getByToken(TrackMETToken_, L1TkMETHandle);
     iEvent.getByToken(TrackMHTToken_, L1TkMHTHandle);
     iEvent.getByToken(ttTrackToken_, TTTrackHandle);
+    iEvent.getByToken(GTTttTrackToken_, GTTTTTrackHandle);
     iEvent.getByToken(ttTrackMCTruthToken_, MCTruthTTTrackHandle);
   }
   if (Displaced == "Displaced" || Displaced == "Both") {
@@ -1330,9 +1417,35 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
     }
 
     trueMET = sqrt(trueMETx * trueMETx + trueMETy * trueMETy);
-    m_pv_MC->push_back(zvtx_gen);
+    //m_pv_MC->push_back(zvtx_gen);
   } else {
     edm::LogWarning("DataNotFound") << "\nWarning: GenParticleHandle not found in the event" << std::endl;
+  }
+
+    if (GenVertexHandle.isValid()) {
+    const HepMC::GenEvent* MCEvt = GenVertexHandle->GetEvent();
+    for (HepMC::GenEvent::vertex_const_iterator ivertex =
+             MCEvt->vertices_begin();
+         ivertex != MCEvt->vertices_end(); ++ivertex) {
+      bool hasParentVertex = false;
+      // Loop over the parents looking to see if they are coming from a
+      // production vertex
+      for (HepMC::GenVertex::particle_iterator iparent =
+               (*ivertex)->particles_begin(HepMC::parents);
+           iparent != (*ivertex)->particles_end(HepMC::parents); ++iparent)
+        if ((*iparent)->production_vertex()) {
+          hasParentVertex = true;
+          break;
+        }
+
+          // Reject those vertices with parent vertices
+    if (hasParentVertex) continue;
+      // Get the position of the vertex
+      HepMC::FourVector pos = (*ivertex)->position();
+      const double mm = 0.1;  // [mm] --> [cm]
+      m_pv_MC->push_back(pos.z() * mm);
+      break;  // there should be one single primary vertex
+    }         // end loop over gen vertices
   }
 
   // ----------------------------------------------------------------------------------------------
@@ -1466,8 +1579,8 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
       float tmp_trk_chi2rphi = iterL1Track->chi2XY();
       float tmp_trk_chi2rz = iterL1Track->chi2Z();
       float tmp_trk_bendchi2 = iterL1Track->stubPtConsistency();
-      float tmp_trk_MVA1 = -99.9;  //update with actual MVA when available
-      float tmp_trk_MVA2 = -99.9;  //update with actual MVA when available
+      float tmp_trk_MVA1 = iterL1Track->trkMVA1();
+      float tmp_trk_MVA2 = iterL1Track->trkMVA2();
 
       std::vector<edm::Ref<edmNew::DetSetVector<TTStub<Ref_Phase2TrackerDigi_> >, TTStub<Ref_Phase2TrackerDigi_> > >
           stubRefs = iterL1Track->getStubRefs();
@@ -1567,6 +1680,10 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
       m_trk_unknown->push_back(tmp_trk_unknown);
       m_trk_combinatoric->push_back(tmp_trk_combinatoric);
 
+      unsigned int tmp_InvR = l1track_ptr->getRinvBits();
+      unsigned int tmp_TanL = l1track_ptr->getTanlBits();
+      m_trk_word_InvR->push_back(tmp_InvR);
+      m_trk_word_TanL->push_back(tmp_TanL);
       // ----------------------------------------------------------------------------------------------
       // for studying the fake rate
       // ----------------------------------------------------------------------------------------------
@@ -1615,6 +1732,40 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
       m_trk_matchtp_z0->push_back(myTP_z0);
       m_trk_matchtp_dxy->push_back(myTP_dxy);
     }  //end track loop
+
+  int this_l1GTTtrack = 0;
+  for (iterL1Track = GTTTTTrackHandle->begin(); iterL1Track != GTTTTTrackHandle->end(); iterL1Track++) { //GTT Track Loop
+    edm::Ptr<TTTrack<Ref_Phase2TrackerDigi_> > l1track_ptr(GTTTTTrackHandle, this_l1GTTtrack);
+    this_l1GTTtrack++;
+
+    unsigned int tmp_valid = l1track_ptr->getValidBits();
+    unsigned int tmp_InvR = l1track_ptr->getRinvBits();
+    unsigned int tmp_Phi = l1track_ptr->getPhiBits();
+    unsigned int tmp_TanL = l1track_ptr->getTanlBits();
+    unsigned int tmp_Z0 = l1track_ptr->getZ0Bits();
+    unsigned int tmp_D0 = l1track_ptr->getD0Bits();
+    unsigned int tmp_chi2rphi = l1track_ptr->getChi2RPhiBits();
+    unsigned int tmp_chi2rz = l1track_ptr->getChi2RZBits();
+    unsigned int tmp_bendchi2 = l1track_ptr->getBendChi2Bits();
+    unsigned int tmp_hitpattern = l1track_ptr->getHitPatternBits();
+    unsigned int tmp_MVAquality = l1track_ptr->getMVAQualityBits();
+    unsigned int tmp_MVAother = l1track_ptr->getMVAOtherBits();
+
+    m_trk_word_valid->push_back(tmp_valid);
+    m_trk_word_pT->push_back(tmp_InvR);
+    m_trk_word_Phi->push_back(tmp_Phi);
+    m_trk_word_eta->push_back(tmp_TanL);
+    m_trk_word_Z0->push_back(tmp_Z0);
+    m_trk_word_D0->push_back(tmp_D0);
+    m_trk_word_chi2rphi->push_back(tmp_chi2rphi);
+    m_trk_word_chi2rz->push_back(tmp_chi2rz);
+    m_trk_word_bendchi2->push_back(tmp_bendchi2);
+    m_trk_word_hitpattern->push_back(tmp_hitpattern);
+    m_trk_word_MVAquality->push_back(tmp_MVAquality);
+    m_trk_word_MVAother->push_back(tmp_MVAother);
+
+  } //end GTT Track loop
+
   }    //end if SaveAllTracks
 
   // ----------------------------------------------------------------------------------------------
@@ -1651,8 +1802,8 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
       float tmp_trk_chi2rphi = iterL1Track->chi2XY();
       float tmp_trk_chi2rz = iterL1Track->chi2Z();
       float tmp_trk_bendchi2 = iterL1Track->stubPtConsistency();
-      float tmp_trk_MVA1 = -99.9;  //update when actual MVA is available
-      float tmp_trk_MVA2 = -99.9;  //update when actual MVA is available
+      float tmp_trk_MVA1 = iterL1Track->trkMVA1();
+      float tmp_trk_MVA2 = iterL1Track->trkMVA2();
 
       std::vector<edm::Ref<edmNew::DetSetVector<TTStub<Ref_Phase2TrackerDigi_> >, TTStub<Ref_Phase2TrackerDigi_> > >
           stubRefs = iterL1Track->getStubRefs();
@@ -1739,7 +1890,8 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
       m_trkExt_chi2rphi->push_back(tmp_trk_chi2rphi);
       m_trkExt_chi2rz->push_back(tmp_trk_chi2rz);
       m_trkExt_bendchi2->push_back(tmp_trk_bendchi2);
-      m_trkExt_MVA->push_back(tmp_trk_MVA1);
+      m_trkExt_MVA1->push_back(tmp_trk_MVA1);
+      m_trkExt_MVA2->push_back(tmp_trk_MVA2);
       m_trkExt_nstub->push_back(tmp_trk_nstub);
       m_trkExt_dhits->push_back(tmp_trk_dhits);
       m_trkExt_lhits->push_back(tmp_trk_lhits);
@@ -2094,8 +2246,8 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
         tmp_matchtrk_chi2rphi = matchedTracks.at(i_track)->chi2XY();
         tmp_matchtrk_chi2rz = matchedTracks.at(i_track)->chi2Z();
         tmp_matchtrk_bendchi2 = matchedTracks.at(i_track)->stubPtConsistency();
-        tmp_matchtrk_MVA1 = -99.9;  //update when MVA is available
-        tmp_matchtrk_MVA2 = -99.9;  //update when MVA is available
+        tmp_matchtrk_MVA1 = matchedTracks.at(i_track)->trkMVA1();
+        tmp_matchtrk_MVA2 = matchedTracks.at(i_track)->trkMVA2();
         tmp_matchtrk_nstub = (int)matchedTracks.at(i_track)->getStubRefs().size();
         tmp_matchtrk_seed = (int)matchedTracks.at(i_track)->trackSeedType();
         tmp_matchtrk_hitpattern = (int)matchedTracks.at(i_track)->hitPattern();
@@ -2238,7 +2390,8 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
       float tmp_matchtrkExt_chi2rphi = -999;
       float tmp_matchtrkExt_chi2rz = -999;
       float tmp_matchtrkExt_bendchi2 = -999;
-      float tmp_matchtrkExt_MVA = -999;
+      float tmp_matchtrkExt_MVA1 = -999;
+      float tmp_matchtrkExt_MVA2 = -999;
       int tmp_matchtrkExt_nstub = -999;
       int tmp_matchtrkExt_dhits = -999;
       int tmp_matchtrkExt_lhits = -999;
@@ -2269,7 +2422,8 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
         tmp_matchtrkExt_chi2rphi = matchedTracks.at(i_track)->chi2XY();
         tmp_matchtrkExt_chi2rz = matchedTracks.at(i_track)->chi2Z();
         tmp_matchtrkExt_bendchi2 = matchedTracks.at(i_track)->stubPtConsistency();
-        tmp_matchtrkExt_MVA = -99.9;  //update when MVA is available
+        tmp_matchtrkExt_MVA1 = matchedTracks.at(i_track)->trkMVA1();
+        tmp_matchtrkExt_MVA2 = matchedTracks.at(i_track)->trkMVA2();
         tmp_matchtrkExt_nstub = (int)matchedTracks.at(i_track)->getStubRefs().size();
         tmp_matchtrkExt_seed = (int)matchedTracks.at(i_track)->trackSeedType();
         tmp_matchtrkExt_hitpattern = (int)matchedTracks.at(i_track)->hitPattern();
@@ -2306,7 +2460,8 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
       m_matchtrkExt_chi2rphi->push_back(tmp_matchtrkExt_chi2rphi);
       m_matchtrkExt_chi2rz->push_back(tmp_matchtrkExt_chi2rz);
       m_matchtrkExt_bendchi2->push_back(tmp_matchtrkExt_bendchi2);
-      m_matchtrkExt_MVA->push_back(tmp_matchtrkExt_MVA);
+      m_matchtrkExt_MVA1->push_back(tmp_matchtrkExt_MVA1);
+      m_matchtrkExt_MVA2->push_back(tmp_matchtrkExt_MVA2);
       m_matchtrkExt_nstub->push_back(tmp_matchtrkExt_nstub);
       m_matchtrkExt_dhits->push_back(tmp_matchtrkExt_dhits);
       m_matchtrkExt_lhits->push_back(tmp_matchtrkExt_lhits);
@@ -2347,6 +2502,17 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
       }
     }  //end displaced-track quantities
   }
+
+
+  if (L1TkPrimaryVertexHandle.isValid()) {
+      for (vtxIter = L1TkPrimaryVertexHandle->begin(); vtxIter != L1TkPrimaryVertexHandle->end(); ++vtxIter) {
+        m_pv_L1reco->push_back(vtxIter->z0());
+        m_pv_L1reco_sum->push_back(vtxIter->pt());
+      }
+    }
+    else {
+      edm::LogWarning("DataNotFound")<< "\nWarning: L1TkPrimaryVertexHandle not found in the event"<< std::endl;
+    }
 
   if (SaveTrackJets) {
     if (TrackFastJetsHandle.isValid() && (Displaced == "Prompt" || Displaced == "Both")) {
@@ -2402,16 +2568,6 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
         m_2ltrkjetExt_nTightDisplaced->push_back(jetIter->nTightDisptracks());
       }
     }
-
-    if (L1TkPrimaryVertexHandle.isValid()) {
-      for (vtxIter = L1TkPrimaryVertexHandle->begin(); vtxIter != L1TkPrimaryVertexHandle->end(); ++vtxIter) {
-        m_pv_L1reco->push_back(vtxIter->z0());
-        m_pv_L1reco_sum->push_back(vtxIter->pt());
-      }
-    }
-    else {
-      edm::LogWarning("DataNotFound")<< "\nWarning: L1TkPrimaryVertexHandle not found in the event"<< std::endl;
-    }
   } // end track jets
 
   if (SaveTrackJetsEmulation) {	
@@ -2451,3 +2607,5 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
 ///////////////////////////
 // DEFINE THIS AS A PLUG-IN
 DEFINE_FWK_MODULE(L1TrackObjectNtupleMaker);
+
+
