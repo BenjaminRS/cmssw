@@ -68,9 +68,12 @@ namespace l1tVertexFinder {
                        bool highPt = false,
                        unsigned int nHighPt = -999,
                        double highestPt = -999.,
+                       double weight = -999.,
                        bool pv = false);
     /// Get the equivalent l1t::Vertex
     l1t::Vertex vertex() const;
+    /// Sum of fitted tracks weights
+    double weight() const { return weight_; }
     /// Vertex z0 position [cm]
     double z0() const { return z0_; }
     /// Vertex z0 width [cm]
@@ -81,6 +84,7 @@ namespace l1tVertexFinder {
     double z0width_;
     double pT_;
     double highestPt_;
+    double weight_;
     std::vector<const T*> tracks_;
     std::set<const TP*> trueTracks_;
     bool pv_;
@@ -95,6 +99,7 @@ namespace l1tVertexFinder {
     z0width_ = -999.;
     pT_ = -999.;
     highestPt_ = -999.;
+    weight_ = -999.;
     pv_ = false;
     highPt_ = false;
     numHighPtTracks_ = 0;
@@ -108,6 +113,7 @@ namespace l1tVertexFinder {
     z0width_ = vertex.z0width();
     pT_ = vertex.pt();
     highestPt_ = vertex.highestPt();
+    weight_ = vertex.weight();
     pv_ = vertex.primaryVertex();
     highPt_ = vertex.hasHighPt();
     numHighPtTracks_ = vertex.numHighPtTracks();
@@ -128,6 +134,7 @@ namespace l1tVertexFinder {
     z0width_ = -999.;
     pT_ = vertex.pt();
     highestPt_ = -999.;
+    weight_ = -999.;
     pv_ = false;
     highPt_ = false;
     numHighPtTracks_ = 0;
@@ -143,13 +150,14 @@ namespace l1tVertexFinder {
 
   template <typename T>
   void RecoVertex<T>::setParameters(
-      double pt, double z0, double width, bool highPt, unsigned int nHighPt, double highestPt, bool pv) {
+      double pt, double z0, double width, bool highPt, unsigned int nHighPt, double highestPt, double weight, bool pv) {
     pT_ = pt;
     z0_ = z0;
     z0width_ = width;
     highPt_ = highPt;
     numHighPtTracks_ = nHighPt;
     highestPt_ = highestPt;
+    weight_ = weight;
     pv_ = pv;
   }
 

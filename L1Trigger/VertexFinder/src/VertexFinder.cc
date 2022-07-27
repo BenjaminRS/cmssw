@@ -1,4 +1,5 @@
 #include "L1Trigger/VertexFinder/interface/VertexFinder.h"
+#include "CLHEP/Random/RandGauss.h"
 
 using namespace std;
 
@@ -605,6 +606,23 @@ namespace l1tVertexFinder {
     }
   }
 
+  void VertexFinder::Generator(std::vector<const L1Track*>& pvTracks) {
+    RecoVertex genPV;
+    float sumz0 = 0.;
+    float smear = settings_->vx_smear();
+    cout << "L1T Vertexing: Smearing generator vertex with resolution of " << smear << endl;
+
+    for (const L1Track* track : pvTracks) {
+      sumz0 += track->z0();
+      genPV.insert(track);
+    }
+    float avrgz0 = sumz0 / (pvTracks.size());
+    float smearedz0 = (float)CLHEP::RandGauss::shoot(avrgz0, smear);
+    //std::cout << "Gen z0 = " << avrgz0 << ", smear = " << smearedz0 << std::endl;
+    genPV.setZ0(smearedz0);
+    vertices_.push_back(genPV);
+  }
+
   void VertexFinder::fastHistoLooseAssociation() {
     float vxPt = 0.;
     RecoVertex leading_vertex;
@@ -649,53 +667,62 @@ namespace l1tVertexFinder {
         continue;
       if (track.pt() < settings_->vx_TrackMinPt())
         continue;
+      if ((int)track.getTTTrackPtr()->getStubRefs().size() < 4) //CS ADD
+	      continue;
+      if (track.eta() > 2.4 || track.eta() < -2.4) //CS ADD
+	      continue;
+      //if (track.getTTTrackPtr()->trkMVA1() < 0.8)
+	    //  continue;
+      //if (track.getTTTrackPtr()->chi2Z() > 5 || track.getTTTrackPtr()->chi2XY() > 20 ||
+	    //  track.getTTTrackPtr()->stubPtConsistency() > 2.25)
+	    //  continue;
 
       // Get the number of stubs and the number of stubs in PS layers
-      float nPS = 0., nstubs = 0;
+      // float nPS = 0., nstubs = 0;
 
-      // Get pointers to stubs associated to the L1 track
-      const auto& theStubs = track.getTTTrackPtr()->getStubRefs();
-      if (theStubs.empty()) {
-        edm::LogWarning("VertexFinder") << "fastHisto::Could not retrieve the vector of stubs.";
-        continue;
-      }
+      // // Get pointers to stubs associated to the L1 track
+      // const auto& theStubs = track.getTTTrackPtr()->getStubRefs();
+      // if (theStubs.empty()) {
+      //   edm::LogWarning("VertexFinder") << "fastHisto::Could not retrieve the vector of stubs.";
+      //   continue;
+      // }
 
-      // Loop over the stubs
-      for (const auto& stub : theStubs) {
-        nstubs++;
-        bool isPS = false;
-        DetId detId(stub->getDetId());
-        if (detId.det() == DetId::Detector::Tracker) {
-          if (detId.subdetId() == StripSubdetector::TOB && tTopo->tobLayer(detId) <= 3)
-            isPS = true;
-          else if (detId.subdetId() == StripSubdetector::TID && tTopo->tidRing(detId) <= 9)
-            isPS = true;
-        }
-        if (isPS)
-          nPS++;
-      }  // End loop over stubs
-      if (nstubs < settings_->vx_NStubMin())
-        continue;
-      if (nPS < settings_->vx_NStubPSMin())
-        continue;
+      // // Loop over the stubs
+      // for (const auto& stub : theStubs) {
+      //   nstubs++;
+      //   bool isPS = false;
+      //   DetId detId(stub->getDetId());
+      //   if (detId.det() == DetId::Detector::Tracker) {
+      //     if (detId.subdetId() == StripSubdetector::TOB && tTopo->tobLayer(detId) <= 3)
+      //       isPS = true;
+      //     else if (detId.subdetId() == StripSubdetector::TID && tTopo->tidRing(detId) <= 9)
+      //       isPS = true;
+      //   }
+      //   if (isPS)
+      //     nPS++;
+      // }  // End loop over stubs
+      // if (nstubs < settings_->vx_NStubMin())
+      //   continue;
+      // if (nPS < settings_->vx_NStubPSMin())
+      //   continue;
 
-      // Quality cuts, may need to be re-optimized
-      int trk_nstub = (int)track.getTTTrackPtr()->getStubRefs().size();
-      float chi2dof = track.getTTTrackPtr()->chi2() / (2 * trk_nstub - 4);
+      // // Quality cuts, may need to be re-optimized
+      // int trk_nstub = (int)track.getTTTrackPtr()->getStubRefs().size();
+      // float chi2dof = track.getTTTrackPtr()->chi2() / (2 * trk_nstub - 4);
 
-      if (settings_->vx_DoPtComp()) {
-        float trk_consistency = track.getTTTrackPtr()->stubPtConsistency();
-        if (trk_nstub == 4) {
-          if (std::abs(track.eta()) < 2.2 && trk_consistency > 10)
-            continue;
-          else if (std::abs(track.eta()) > 2.2 && chi2dof > 5.0)
-            continue;
-        }
-      }
-      if (settings_->vx_DoTightChi2()) {
-        if (track.pt() > 10.0 && chi2dof > 5.0)
-          continue;
-      }
+      // if (settings_->vx_DoPtComp()) {
+      //   float trk_consistency = track.getTTTrackPtr()->stubPtConsistency();
+      //   if (trk_nstub == 4) {
+      //     if (std::abs(track.eta()) < 2.2 && trk_consistency > 10)
+      //       continue;
+      //     else if (std::abs(track.eta()) > 2.2 && chi2dof > 5.0)
+      //       continue;
+      //   }
+      // }
+      // if (settings_->vx_DoTightChi2()) {
+      //   if (track.pt() > 10.0 && chi2dof > 5.0)
+      //     continue;
+      // }
 
       // Assign the track to the correct vertex
       // The values are ordered with bounds [lower, upper)
@@ -1069,5 +1096,409 @@ namespace l1tVertexFinder {
     }
     pv_index_ = 0;
   }  // end of fastHistoEmulation
+  void VertexFinder::CNNPVZ0Algorithm(tensorflow::Session* cnnTrkSesh, tensorflow::Session* cnnPVZ0Sesh, tensorflow::Session* cnnAssSesh) {
+    // #### Weight Tracks: ####
+    // Loop over tracks -> weight the network -> set track weights
+    tensorflow::Tensor inputTrkWeight(tensorflow::DT_FLOAT, {1, 3});  //Single batch of 3 values
+    uint counter = 0;
+    //cout << "VertexFinder::CNNPVZ0Algorithm Looping over tracks and inputting track param to network " << endl;
+    //cout << "gttTracks_.size(): " << gttTracks_.size() << endl;
+    //cout << "fitTracks_.size(): " << fitTracks_.size() << endl;
+    // for (auto& track : gttTracks_) {
+    //   int pTBit = track.getTTTrackPtr()->getRinvBits() < 16383 ? track.getTTTrackPtr()->getRinvBits() : track.getTTTrackPtr()->getRinvBits()-16384;
+    //   float etaBit = track.getTTTrackPtr()->getTanlBits() < 32767 ? (track.getTTTrackPtr()->getTanlBits()+32767)/(2*32767) : (track.getTTTrackPtr()->getTanlBits()-32767)/(2*32767);
+    //   cout << "\t[" << counter << "]: pt() = " << track.pt() 
+    //         << " getRinvBits() = " << float(std::clamp(pTBit, 0, 4096))/4096.
+    //         << " MVA1() = " << track.MVA1()/8.
+    //         << " getTanlBits() = " << etaBit/32767.
+    //         << endl;
+    //   ++counter;
+    // }
+    // counter = 0;
+    for (auto& track : fitTracks_) {
+      
+      // Chris' Unquantised Network: normed_trk_pt, trk_MVA1, normed_trk_eta 
+      float pT = track.pt() > 512.0 ? 1.0 : track.pt()/512.0;
+      // inputTrkWeight.tensor<float, 2>()(0, 0) = float(pT);
+      // inputTrkWeight.tensor<float, 2>()(0, 1) = float(track.MVA1());
+      // inputTrkWeight.tensor<float, 2>()(0, 2) = float((abs(track.eta())/2.4));
 
+      // Chris' Quantised Network: Use values from L1GTTInputProducer pT, MVA1, eta
+      auto& gttTrack = fitTracks_.at(counter);
+      int pTBit = gttTrack.getTTTrackPtr()->getRinvBits() < 16383 ? gttTrack.getTTTrackPtr()->getRinvBits() : gttTrack.getTTTrackPtr()->getRinvBits()-16384;
+      float etaBit = gttTrack.getTTTrackPtr()->getTanlBits() < 32767 ? (gttTrack.getTTTrackPtr()->getTanlBits()+32767) : (gttTrack.getTTTrackPtr()->getTanlBits()-32767);
+      inputTrkWeight.tensor<float, 2>()(0, 0) = float(std::clamp(pTBit, 0, 512))/512.;
+      inputTrkWeight.tensor<float, 2>()(0, 1) = gttTrack.MVA1()/8;
+      // inputTrkWeight.tensor<float, 2>()(0, 1) = gttTrack.MVA1()/8.;
+      inputTrkWeight.tensor<float, 2>()(0, 2) = etaBit/65534.;
+      // cout << "\t[" << counter << "]: "
+      //       << " pt() = " << track.pt() 
+      //       << " getRinvBits() = " << float(std::clamp(pTBit, 0, 4096))/4096.
+      //       << " MVA1() = " << gttTrack.MVA1()
+      //       << " MVA1()/8 = " << gttTrack.MVA1()/8.
+      //       << " getTanlBits() = " << etaBit/32767.
+      //       << endl;
+
+        
+      // CNN output: track weight
+      std::vector<tensorflow::Tensor> outputTrkWeight;
+      tensorflow::run(cnnTrkSesh, {{"weight:0", inputTrkWeight}}, {"Identity:0"}, &outputTrkWeight);
+      // Set track weight pack into tracks:
+      track.setWeight(outputTrkWeight[0].tensor<float, 2>()(0, 0));
+      // cout << "\t[" << counter << "]: "
+      //     << " pT: " << pT
+      //     << " MVA1: " << track.MVA1()
+      //     << " eta: " << abs(track.eta())/2.4
+      //     << "  outputTrkWeight[0].tensor<float, 2>()(0, 0): " << outputTrkWeight[0].tensor<float, 2>()(0, 0) << endl;
+      ++counter;
+    }
+
+    // #### Find Vertices: ####
+    // define a tensor and fill it with track parameters
+    cout << "Finding Vertices " << endl;
+    tensorflow::Tensor inputPV(tensorflow::DT_FLOAT, {1, 256, 1});  //Single batch with 256 bins and 1 weight
+    std::vector<tensorflow::Tensor> outputPV;
+    RecoVertexCollection vertices(256.);
+    // std::map<float, std::shared_ptr<l1tVertexFinder::RecoVertex>> vertexMap; //BRS: Would be nice to do this: but not working yet
+    std::map<float, int> vertexMap;
+    std::map<int, float> histogram;
+    std::map<int, float> nnOutput;
+
+    float binWidth = 30./256.;
+    float temp_z0 = 0;
+    // cout << " Filling inputPV" << endl;
+    // Fill Histogram of 256 bins and input into NN
+    for (float z = -15; z < 15.; z += binWidth) {
+      int zbin = floor((float)(((float)z + 15.)/((float)binWidth)));
+      // int zbinPhalf = (int)(zbin+0.5*binWidth); // zbin plus half a binwidth
+      float vxWeight = 0;
+      for (const L1Track& track : fitTracks_) {
+        // Ad-hoc correction to z0 due to bias in +ve and -ve z0
+        if (track.z0() > 0.)
+          temp_z0 = track.z0() + 0.03;
+        else if (track.z0() < 0.)
+          temp_z0 = track.z0() - 0.03;
+        if (floor((temp_z0 + 15.)/binWidth) >= zbin  && floor((temp_z0 + 15.)/binWidth) < (zbin + 1)) {
+          vertices.at(zbin).insert(&track);
+          // vertices.at(zbinPhalf).insert(&track);
+          vxWeight += track.weight();
+        }
+      }
+      vertices.at(zbin).setZ0(z + binWidth);
+      // vertices.at(zbinPhalf).setZ0(z+0.5*binWidth);
+      vertexMap[vxWeight]=zbin; //BRS: Warning: rare chance to have exactly the same non-zero floating key?
+      // vertexMap[vxWeight]=zbinPhalf; //BRS: Warning: rare chance to have exactly the same non-zero floating key?
+      // inputPV.tensor<float, 3>()(0, zbinPhalf, 1) = vxWeight;
+      // inputPV.tensor<float, 3>()(0, zbinPhalf, 0) = vxWeight;
+      // inputPV.tensor<float, 3>()(0, zbin, 1) = vxWeight;
+      inputPV.tensor<float, 3>()(0, zbin, 0) = vxWeight;
+      //Fill histogram for 3 bin sliding window:
+      histogram[zbin]=vxWeight;
+    }
+
+    // for (const auto& [f,s]:histogram) cout << "\thistogram: " << f << " " << s << endl;
+
+    // 3 Bin sliding window -- FH approx for debugging
+    float threeBinMax = 0;
+    float threeBinCentre = 0;
+    float threeBinPVZ = 0;
+    int maxBin = 0;
+    for (int bin=1; bin<((int) histogram.size()-1); ++bin){ // Sliding window when not at min/max of histogram
+      float threeBinSum = histogram[bin-1]+histogram[bin]+histogram[bin+1];
+      if (threeBinSum > threeBinMax) {
+        threeBinMax = threeBinSum;
+        threeBinCentre = histogram[bin];
+        threeBinPVZ = (bin*binWidth)-15.;
+        maxBin=bin;
+        //threeBinPVZ = ((bin+0.5)*binWidth)-15.;
+      }
+    }
+    std::cout << " Fast Histo Approx Chosen PV: vxWeight = " << threeBinCentre << " zbin = " << maxBin << " z0 = " << threeBinPVZ << '\n';
+
+    // Run PV Network:
+    // cout << " Running PV Network " << endl;
+    tensorflow::run(cnnPVZ0Sesh, {{"hist:0", inputPV}}, {"Identity:0"}, &outputPV);
+    // cout << " PV Network has run" << endl;
+    // cout << " outputPV.size(): " << outputPV.size() << endl;
+
+    for (int i(0);i<256;++i){
+      nnOutput[i]=outputPV[0].tensor<float, 3>()(0, i, 0);
+      //cout << "\tinputPV ["<<i<<"]: " << inputPV.tensor<float, 3>()(0, i, 0) << endl;
+    }
+    // cout << " vertices.size(): " << vertices.size() << endl;
+    // cout << " vertexMap.size(): " << vertexMap.size() << endl;
+    // for (const auto& [f,s]:vertexMap) cout << "\tvertexMap: " << f << " " << s << endl;
+
+    // Argmax equivalent:
+    auto nnChosenPV = std::max_element(nnOutput.begin(), nnOutput.end(),[](const pair<int, float>& p1, const pair<int, float>& p2) {return p1.second < p2.second;});
+    std::cout << " NN Chosen PV: prob: "<< nnChosenPV->second
+              << " bin = " << nnChosenPV->first
+              << " z0 = " << vertices.at(nnChosenPV->first).z0()
+              // << ((nnChosenPV->first)*binWidth)-15.
+              << '\n';
+
+    // Select highest probablilty vertex:
+    // BRS: Look to see if we can replace some of this with computeAndSetVertexParameters
+    // Selecting 10 vertices:
+    // int breaker=0;
+    // for (auto it = vertexMap.crbegin(); it != vertexMap.crend(); ++it) {
+    //     if (breaker>9) break; //Choose the top 10 vertices
+    //     std::cout << it->first << " : " << it->second << '\n';
+    //     ++breaker;
+    // }
+    // Selecting the top PV candidate:
+    auto pv = vertexMap.crbegin();
+    std::cout << " BRS Chosen PV: vxWeight = " << pv->first << " zbin = " << pv->second << " z0 = " << vertices.at(pv->second).z0() << '\n';
+    
+    // 1 top PV from BRS Chosen:
+    // vertices_.emplace_back(vertices.at(pv->second));
+    // 1 top PV from Chris' network:
+    vertices_.emplace_back(vertices.at(nnChosenPV->first));
+
+    // #### Run track association: ####
+    cout << "Track Association " << endl;
+    tensorflow::Tensor inputAssoc(tensorflow::DT_FLOAT, {1, 4});  //Single batch of 4 values
+
+    // Bins used for track res feature to assoc network
+    std::vector<float> eta_bins = {0.0,0.2,0.4,0.6,0.8,1.0,1.2,1.4,1.6,1.8,2,2.2,2.4,3.0};
+    std::vector<float> res_bins  = {0.0,0.1,0.1,0.12,0.14,0.16,0.18,0.23,0.23,0.3,0.35,0.38,0.42,0.5,1};
+
+    // loop over tracks
+    uint trackIt(0);
+    for (L1Track& track : fitTracks_) {
+      auto& gttTrack = fitTracks_.at(trackIt);
+      if (track.z0() > 0.)
+          temp_z0 = track.z0() + 0.03;
+        else if (track.z0() < 0.)
+          temp_z0 = track.z0() - 0.03;
+
+      // Chris' Network: deltaZ, normed_trk_pt, trk_MVA1, trk_res
+
+      auto up = std::upper_bound(eta_bins.begin(), eta_bins.end(), abs(track.eta()));
+      int resbin = (up - eta_bins.begin() - 1);
+
+      float dZ = abs(floor(((temp_z0 + 15.)/(binWidth))) - floor(((vertices.at(nnChosenPV->first).z0() + binWidth/2 + 15.)/(binWidth))))/128.;
+
+      int pTBit = gttTrack.getTTTrackPtr()->getRinvBits() < 16383 ? gttTrack.getTTTrackPtr()->getRinvBits() : gttTrack.getTTTrackPtr()->getRinvBits()-16384;
+      float etaBit = gttTrack.getTTTrackPtr()->getTanlBits() < 32767 ? (gttTrack.getTTTrackPtr()->getTanlBits()+32767) : (gttTrack.getTTTrackPtr()->getTanlBits()-32767);
+      inputAssoc.tensor<float, 2>()(0, 0) = dZ;
+      inputAssoc.tensor<float, 2>()(0, 1) = float(std::clamp(pTBit, 0, 512))/512.;
+      inputAssoc.tensor<float, 2>()(0, 2) = gttTrack.MVA1()/8;
+      inputAssoc.tensor<float, 2>()(0, 3) = res_bins[resbin];
+      
+
+
+      std::vector<tensorflow::Tensor> outputAssoc;
+      // Run Association Network:
+      tensorflow::run(cnnAssSesh, {{"assoc:0", inputAssoc}}, {"Identity:0"}, &outputAssoc);
+      // loop over tracks and store probability in track
+      // std::cout << "\ttrackIt[" << trackIt << "]: "
+      //   << " normed_trk_pt: " << pT
+      //   << " trk_MVA1: " << float(track.MVA1())
+      //   << " track eta: " << abs(track.eta())
+      //   << " trk_over_eta_squared: " << 5.76/(float(abs(track.eta()))*float(abs(track.eta())))
+      //   << " deltaZ: " << float(abs(track.z0() - vertices_.at(0).z0()))
+      //   << " outputAssoc: " << outputAssoc[0].tensor<float, 2>()(0, 0)
+      //   << "\n";
+      trackIt++;
+    }
+    // std::cout << " Finished inputting to inputAssoc:\n";
+
+    // std::cout << " Print out of the probabilities from the fitTracks_ collection:\n";
+    // for (const L1Track& track : fitTracks_) {
+    //   if (track.MVAProb() > 0.2){
+    //     std::cout << "\ttrack->trkMVA2(): " << track.MVAProb() << " z0: " << track.z0() << " pvZ: " << vertices_.at(0).z0()
+    //               << " abs(track.z0() - pvZ): " << abs(track.z0() - vertices_.at(0).z0()) << '\n';
+    //   }
+    // }
+    // End of Association
+
+  } // end of CNNPVZ0Algorithm
+
+  void VertexFinder::CNNPVZ0Emulation(tensorflow::Session* cnnTrkSesh, tensorflow::Session* cnnPVZ0Sesh, tensorflow::Session* cnnAssSesh) {
+    float max_z0 = 20.46912512;
+    // #### Weight Tracks: ####
+    // Loop over tracks -> weight the network -> set track weights
+    tensorflow::Tensor inputTrkWeight(tensorflow::DT_FLOAT, {1, 3});  //Single batch of 3 values
+    uint counter = 0;
+
+    for (auto& track : fitTracks_) {
+      // Chris' Quantised Network: Use values from L1GTTInputProducer pT, MVA1, eta
+      auto& gttTrack = fitTracks_.at(counter);
+      int pTBit = gttTrack.getTTTrackPtr()->getRinvBits() < 16383 ? gttTrack.getTTTrackPtr()->getRinvBits() : gttTrack.getTTTrackPtr()->getRinvBits()-16384;
+      int etaBit = gttTrack.getTTTrackPtr()->getTanlBits() < 32767 ? gttTrack.getTTTrackPtr()->getTanlBits() : 65535 - gttTrack.getTTTrackPtr()->getTanlBits();
+      etaBit = etaBit/64;
+
+      inputTrkWeight.tensor<float, 2>()(0, 0) = float(std::clamp(pTBit, 0, 512))/512.;
+      inputTrkWeight.tensor<float, 2>()(0, 1) = gttTrack.getTTTrackPtr()->getMVAQualityBits()/8.;
+      inputTrkWeight.tensor<float, 2>()(0, 2) = etaBit/1024.;
+
+      // CNN output: track weight
+      std::vector<tensorflow::Tensor> outputTrkWeight;
+      tensorflow::run(cnnTrkSesh, {{"weight:0", inputTrkWeight}}, {"Identity:0"}, &outputTrkWeight);
+      // Set track weight pack into tracks:
+      track.setWeight((double)outputTrkWeight[0].tensor<float, 2>()(0, 0));
+
+      //std::cout << gttTrack.getTTTrackPtr()->phiSector() << " | " << gttTrack.getTTTrackPtr()->getZ0Bits()/16 << "," << pTBit << "," << gttTrack.getTTTrackPtr()->getMVAQualityBits() << "," << etaBit << "," << (double)outputTrkWeight[0].tensor<float, 2>()(0, 0)*16. << std::endl;
+
+      ++counter;
+    }
+
+    // #### Find Vertices: ####
+    // define a tensor and fill it with track parameters
+    //cout << "Finding Vertices " << endl;
+    tensorflow::Tensor inputPV(tensorflow::DT_FLOAT, {1, 256, 1});  //Single batch with 256 bins and 1 weight
+    std::vector<tensorflow::Tensor> outputPV;
+    RecoVertexCollection vertices(256.);
+    // std::map<float, std::shared_ptr<l1tVertexFinder::RecoVertex>> vertexMap; //BRS: Would be nice to do this: but not working yet
+    std::map<float, int> vertexMap;
+    std::map<int, float> histogram;
+    std::map<int, float> nnOutput;
+
+    float binWidth = (2*max_z0)/256.;
+
+    int track_z = 0;
+
+    for (int z = 0; z < 256; z+=1){
+      counter = 0;
+      double vxWeight = 0;
+
+      for (const L1Track& track : fitTracks_) {
+        auto& gttTrack = fitTracks_.at(counter);
+        double temp_z0 = gttTrack.getTTTrackPtr()->z0();
+
+        track_z = std::floor((temp_z0 + max_z0)/binWidth);
+
+        if (track_z >= z  && track_z < (z + 1)) {
+          vertices.at(z).insert(&track);
+          vxWeight += track.weight();
+        }
+         ++counter;
+      }
+      
+      vertices.at(z).setZ0( ((z + 0.5 ) * binWidth) - max_z0);
+
+      vertexMap[vxWeight]=z; //BRS: Warning: rare chance to have exactly the same non-zero floating key?
+      inputPV.tensor<float, 3>()(0, z, 0) = vxWeight;
+      //Fill histogram for 3 bin sliding window:
+      histogram[z]=vxWeight;
+
+    }
+
+    // float threeBinMax = 0;
+    // float threeBinCentre = 0;
+    // float threeBinPVZ = 0;
+    // int maxBin = 0;
+    // for (int bin=1; bin<((int) histogram.size()-1); ++bin){ // Sliding window when not at min/max of histogram
+    //   float threeBinSum = histogram[bin-1]+histogram[bin]+histogram[bin+1];
+    //   if (threeBinSum > threeBinMax) {
+    //     threeBinMax = threeBinSum;
+    //     threeBinCentre = histogram[bin];
+    //     maxBin=bin;
+    //     threeBinPVZ = ((bin+0.5)*binWidth)-15.;
+    //   }
+    // }
+
+    // Run PV Network:
+    tensorflow::run(cnnPVZ0Sesh, {{"hist:0", inputPV}}, {"Identity:0"}, &outputPV);
+
+    vector<float> reorderedInHist(256);
+    vector<float> reorderedOutHist(256);
+
+    for (int i(0);i<256;++i){
+      if (outputPV[0].tensor<float, 3>()(0, i, 0) >= 0.1250){
+        //std::cout << outputPV[0].tensor<float, 3>()(0, i, 0) << std::endl;
+        nnOutput[i]=outputPV[0].tensor<float, 3>()(0, i, 0); 
+      }
+    }
+
+    for (int i(0);i<256;++i){
+      if (i < 128){
+          reorderedInHist[i] = inputPV.tensor<float, 3>()(0, i + 128, 0) * 256;
+          reorderedOutHist[i] = nnOutput[i + 128];
+      } else{
+          reorderedInHist[i] = inputPV.tensor<float, 3>()(0, i - 128, 0) * 256;
+          reorderedOutHist[i] = nnOutput[i - 128];
+      } 
+    } 
+
+    // for (int i(0);i<256;++i){
+    //   cout << "\tinputPV ["<<i<<"]: " << reorderedInHist[i] << endl;
+    // }
+    // std::cout << "===============================================" << std::endl;
+    // for (int i(0);i<256;++i){
+    //   cout << "\toutputPV ["<<i<<"]: " << reorderedOutHist[i] << endl;
+    // }
+
+
+    //Find max then find all occurances of it in histogram and average their position -> python argmax layer 
+    int max_index = 0;
+    int num_maxes = 0;
+    float max_element = 0.0;
+    for (int i(0); i< 256; ++i){
+      if (nnOutput[i] > max_element){ 
+        max_element = nnOutput[i];
+      }
+    }
+
+    for (int i(0); i< 256; ++i){
+      if (nnOutput[i] == max_element){ 
+        num_maxes++;
+        max_index += i;
+      }
+    }
+    int PV_index = ceil((float)max_index/(float)num_maxes);
+    // Argmax equivalent:
+    auto nnChosenPV = std::max_element(nnOutput.begin(), nnOutput.end(),[](const pair<int, float>& p1, const pair<int, float>& p2) {return p1.second < p2.second;});
+    std::cout << " NN Chosen PV: prob: "<< nnOutput[PV_index]
+              << " bin = " << PV_index
+              << " z0 = "  << vertices.at(PV_index).z0()
+              //<< " FH = "  << threeBinPVZ << " | " << threeBinMax << " | " << threeBinCentre << " | " << maxBin
+              << '\n';
+
+    verticesEmulation_.emplace_back(1,
+                                    vertices.at(PV_index).z0(),
+                                    0,
+                                    0,//vertices.at(PV_index).pt(),
+                                    0,
+                                    0,
+                                    0);
+
+    // #### Run track association: ####
+    //cout << "Track Association " << endl;
+    tensorflow::Tensor inputAssoc(tensorflow::DT_FLOAT, {1, 4});  //Single batch of 4 values
+
+    // Bins used for track res feature to assoc network
+    std::vector<float> eta_bins = {0.0,0.2,0.4,0.6,0.8,1.0,1.2,1.4,1.6,1.8,2,2.2,2.4,3.0};
+    std::vector<float> res_bins  = {0.0,0.1,0.1,0.12,0.14,0.16,0.18,0.23,0.23,0.3,0.35,0.38,0.42,0.5,1};
+
+    // loop over tracks
+    uint trackIt(0);
+    for (L1Track& track : fitTracks_) {
+      auto& gttTrack = fitTracks_.at(trackIt);
+
+      // Chris' Network: deltaZ, normed_trk_pt, trk_MVA1, trk_res
+
+      auto up = std::upper_bound(eta_bins.begin(), eta_bins.end(), abs(track.eta()));
+      int resbin = (up - eta_bins.begin() - 1);
+
+      float dZ = abs(std::floor(gttTrack.getTTTrackPtr()->getZ0Bits()/16.) - floor(((vertices.at(nnChosenPV->first).z0() + binWidth/2 + 15.)/(binWidth))))/128.;
+      int pTBit = gttTrack.getTTTrackPtr()->getRinvBits() < 16383 ? gttTrack.getTTTrackPtr()->getRinvBits() : gttTrack.getTTTrackPtr()->getRinvBits()-16384;
+      float etaBit = gttTrack.getTTTrackPtr()->getTanlBits() < 32767 ? (gttTrack.getTTTrackPtr()->getTanlBits()+32767) : (gttTrack.getTTTrackPtr()->getTanlBits()-32767);
+      inputAssoc.tensor<float, 2>()(0, 0) = dZ;
+      inputAssoc.tensor<float, 2>()(0, 1) = float(std::clamp(pTBit, 0, 512))/512.;
+      inputAssoc.tensor<float, 2>()(0, 2) = gttTrack.MVA1()/8;
+      inputAssoc.tensor<float, 2>()(0, 3) = res_bins[resbin];
+
+      std::vector<tensorflow::Tensor> outputAssoc;
+      // Run Association Network:
+      tensorflow::run(cnnAssSesh, {{"assoc:0", inputAssoc}}, {"Identity:0"}, &outputAssoc);
+      // loop over tracks and store probability in track
+
+      trackIt++;
+    }
+
+
+  } // end of CNNPVZ0Algorithm
+  
 }  // namespace l1tVertexFinder

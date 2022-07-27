@@ -23,9 +23,13 @@ namespace l1tVertexFinder {
     float phi0() const { return track_->momentum().phi(); };
     float pt() const { return track_->momentum().transverse(); };
     float z0() const { return track_->POCA().z(); };
+    float bendchi2() const { return track_->stubPtConsistency(); };
+    float weight() const { return weight_; };
+    void setWeight(float w) { weight_ = w; };
+    double MVA1() const { return track_->trkMVA1(); };
 
     // FIXME: Double check nPar=4 is correct
-    float chi2dof() const { return track_->chi2Red(); };
+    float chi2dof() const { return track_->chi2(); };
 
     unsigned int getNumStubs() const { return track_->getStubRefs().size(); }
 
@@ -33,6 +37,7 @@ namespace l1tVertexFinder {
 
   private:
     edm::Ptr<TTTrack<Ref_Phase2TrackerDigi_>> track_;
+    float weight_;
   };
 
 }  // namespace l1tVertexFinder

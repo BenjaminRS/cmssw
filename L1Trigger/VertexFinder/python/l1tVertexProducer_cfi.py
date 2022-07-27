@@ -5,11 +5,14 @@ l1tVertexProducer = cms.EDProducer('VertexProducer',
   l1TracksInputTag = cms.InputTag("l1tTTTracksFromTrackletEmulation", "Level1TTTracks"),
 
   l1VertexCollectionName = cms.string("l1vertices"),
+  mcTruthTrackInputTag = cms.InputTag("TTTrackAssociatorFromPixelDigis", "Level1TTTracks"),
+  tpInputTag = cms.InputTag("mix", "MergedTrackTruth"),
+
 
   # === Vertex Reconstruction configuration
   VertexReconstruction = cms.PSet(
         # Vertex Reconstruction Algorithm
-        Algorithm = cms.string("fastHisto"),
+        Algorithm = cms.string("NN"),
         # Vertex distance [cm]
         VertexDistance = cms.double(.15),
         # Assumed Vertex Resolution [cm]
@@ -68,6 +71,19 @@ l1tVertexProducer = cms.EDProducer('VertexProducer',
         VxMinNStub = cms.uint32(4),
         # Minimum number of stubs in PS modules associated to a track
         VxMinNStubPS = cms.uint32(3),
+        GenVxSmear = cms.double(0.2),
+        # Track weight graph CNN
+        # CNNTrackWeightGraph = cms.string("../../VertexFinder/data/weightModelgraph.pb"),
+        CNNTrackWeightGraph = cms.string("L1Trigger/VertexFinder/data/Quantised_model_prune_iteration_9_weightModelgraph.pb"),
+        # CNNTrackWeightGraph = cms.string("Unquantised_model_weightModelgraph.pb"),        
+        # Track position graph CNN
+        # CNNPVZ0Graph = cms.string("../../VertexFinder/data/patternModelgraph.pb"),
+        CNNPVZ0Graph = cms.string("L1Trigger/VertexFinder/data/Quantised_model_prune_iteration_9_patternModelgraph.pb"),
+        # CNNPVZ0Graph = cms.string("Unquantised_model_patternModelgraph.pb"),
+        # Associated tracks to vertex CNN
+        # CNNGraph = cms.string("../../VertexFinder/data/asociationModelgraph.pb")
+        CNNGraph = cms.string("L1Trigger/VertexFinder/data/Quantised_model_prune_iteration_9_associationModelgraph.pb")
+        # CNNGraph = cms.string("Unquantised_model_associationModelgraph.pb")
     ),
   # Debug printout
   debug  = cms.uint32(0)

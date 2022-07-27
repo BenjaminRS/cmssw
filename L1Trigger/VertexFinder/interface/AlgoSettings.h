@@ -19,7 +19,10 @@ namespace l1tVertexFinder {
     PVR,
     adaptiveVertexReconstruction,
     HPV,
-    Kmeans
+    Kmeans,
+    Generator,
+    NN,
+    NNEmulation
   };
 
   enum class Precision { Simulation, Emulation };
@@ -72,7 +75,11 @@ namespace l1tVertexFinder {
     float vx_TrackMaxChi2() const { return vx_TrackMaxChi2_; }
     unsigned int vx_NStubMin() const { return vx_NStubMin_; }
     unsigned int vx_NStubPSMin() const { return vx_NStubPSMin_; }
-
+    // Functions for CNN:
+    std::string vx_cnn_trkw_graph() const { return vx_cnn_trkw_graph_; }
+    std::string vx_cnn_pvz0_graph() const { return vx_cnn_pvz0_graph_; }
+    std::string vx_cnn_graph() const { return vx_cnn_graph_; }
+    float vx_smear() const { return vx_smear_; }
     //=== Debug printout
     unsigned int debug() const { return debug_; }
 
@@ -119,6 +126,11 @@ namespace l1tVertexFinder {
     float vx_dbscan_mintracks_;
     unsigned int vx_kmeans_iterations_;
     unsigned int vx_kmeans_nclusters_;
+    // For CNN:
+    float vx_smear_;
+    std::string vx_cnn_trkw_graph_;
+    std::string vx_cnn_pvz0_graph_;
+    std::string vx_cnn_graph_;
 
     // Debug printout
     unsigned int debug_;

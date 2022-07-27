@@ -19,6 +19,7 @@ VertexProducer::VertexProducer(const edm::ParameterSet& iConfig)
     : l1TracksToken_(consumes<TTTrackCollectionView>(iConfig.getParameter<edm::InputTag>("l1TracksInputTag"))),
       tTopoToken(esConsumes<TrackerTopology, TrackerTopologyRcd>()),
       outputCollectionName_(iConfig.getParameter<std::string>("l1VertexCollectionName")),
+      ttTrackMCTruthToken_(consumes<TTTrackAssociationMap<Ref_Phase2TrackerDigi_> >(iConfig.getParameter<edm::InputTag>("mcTruthTrackInputTag"))),
       settings_(AlgoSettings(iConfig)) {
   // Get configuration parameters
 
@@ -56,13 +57,52 @@ VertexProducer::VertexProducer(const edm::ParameterSet& iConfig)
     case Algorithm::Kmeans:
       edm::LogInfo("VertexProducer") << "VertexProducer::Finding vertices using a kmeans algorithm";
       break;
+    case Algorithm::Generator:
+      edm::LogInfo("VertexProducer") << "VertexProducer::Finding vertices using ** GENERATOR ** vertex (average of TP z0s)";
+      break;
+    case Algorithm::NN:
+      edm::LogInfo("VertexProducer") << "VertexProducer::Finding vertices using the Neural Network algorithm";
+      break;
+    case Algorithm::NNEmulation:
+      edm::LogInfo("VertexProducer") << "VertexProducer::Finding vertices using the Neural Network Emulation";
+      break;
   }
 
   //--- Define EDM output to be written to file (if required)
-  if (settings_.vx_algo() == Algorithm::fastHistoEmulation) {
+  if ((settings_.vx_algo() == Algorithm::fastHistoEmulation ) | (settings_.vx_algo() == Algorithm::NNEmulation ))  {
     produces<l1t::VertexWordCollection>(outputCollectionName_ + "Emulation");
   } else {
     produces<l1t::VertexCollection>(outputCollectionName_);
+  }
+
+    if (settings_.vx_algo() == Algorithm::NN) {
+    // load graphs, create a new session and add the graphDef
+    std::cout << "loading cnn trk weight graph from " << settings_.vx_cnn_trkw_graph() << std::endl;
+    cnnTrkGraph_ = tensorflow::loadGraphDef(settings_.vx_cnn_trkw_graph());
+    cnnTrkSesh_ = tensorflow::createSession(cnnTrkGraph_);
+
+    std::cout << "loading cnn pv z0 graph from " << settings_.vx_cnn_pvz0_graph() << std::endl;
+    cnnPVZ0Graph_ = tensorflow::loadGraphDef(settings_.vx_cnn_pvz0_graph());
+    cnnPVZ0Sesh_ = tensorflow::createSession(cnnPVZ0Graph_);
+
+    std::cout << "loading cnn association graph from " << settings_.vx_cnn_graph() << std::endl;
+    cnnAssGraph_ = tensorflow::loadGraphDef(settings_.vx_cnn_graph());
+    cnnAssSesh_ = tensorflow::createSession(cnnAssGraph_);
+  }
+
+    if (settings_.vx_algo() == Algorithm::NNEmulation) {
+    // load graphs, create a new session and add the graphDef
+    std::cout << "loading cnn trk weight graph from " << settings_.vx_cnn_trkw_graph() << std::endl;
+    cnnTrkGraph_ = tensorflow::loadGraphDef(settings_.vx_cnn_trkw_graph());
+    cnnTrkSesh_ = tensorflow::createSession(cnnTrkGraph_);
+
+    std::cout << "loading cnn pv z0 graph from " << settings_.vx_cnn_pvz0_graph() << std::endl;
+    cnnPVZ0Graph_ = tensorflow::loadGraphDef(settings_.vx_cnn_pvz0_graph());
+    cnnPVZ0Sesh_ = tensorflow::createSession(cnnPVZ0Graph_);
+
+    std::cout << "loading cnn association graph from " << settings_.vx_cnn_graph() << std::endl;
+    cnnAssGraph_ = tensorflow::loadGraphDef(settings_.vx_cnn_graph());
+    cnnAssSesh_ = tensorflow::createSession(cnnAssGraph_);
   }
 }
 
@@ -129,13 +169,34 @@ void VertexProducer::produce(edm::StreamID, edm::Event& iEvent, const edm::Event
     case Algorithm::Kmeans:
       vf.Kmeans();
       break;
+    case Algorithm::Generator: {
+      std::vector<const L1Track*> pvTracks;
+      for (const auto& track : l1Tracks) {
+        edm::Handle<TTTrackAssociationMap<Ref_Phase2TrackerDigi_> > MCTruthTTTrackHandle;
+        iEvent.getByToken(ttTrackMCTruthToken_, MCTruthTTTrackHandle);
+        edm::Ptr<TrackingParticle> tpMatch = MCTruthTTTrackHandle->findTrackingParticlePtr(track.getTTTrackPtr());
+        if (tpMatch.isNull())
+          continue;
+        if (tpMatch->eventId().event() == 0)
+          pvTracks.push_back(&track);
+      }
+      vf.Generator(pvTracks);
+      break;
+    }
+    case Algorithm::NN:
+      vf.CNNPVZ0Algorithm(cnnTrkSesh_, cnnPVZ0Sesh_, cnnAssSesh_);
+      break;
+
+    case Algorithm::NNEmulation:
+      vf.CNNPVZ0Emulation(cnnTrkSesh_, cnnPVZ0Sesh_, cnnAssSesh_);
+      break;
   }
 
   vf.sortVerticesInPt();
   vf.findPrimaryVertex();
 
   // //=== Store output EDM track and hardware stub collections.
-  if (settings_.vx_algo() == Algorithm::fastHistoEmulation) {
+  if ((settings_.vx_algo() == Algorithm::fastHistoEmulation) | (settings_.vx_algo() == Algorithm::NNEmulation)) {
     std::unique_ptr<l1t::VertexWordCollection> product_emulation =
         std::make_unique<l1t::VertexWordCollection>(vf.verticesEmulation().begin(), vf.verticesEmulation().end());
     iEvent.put(std::move(product_emulation), outputCollectionName_ + "Emulation");
