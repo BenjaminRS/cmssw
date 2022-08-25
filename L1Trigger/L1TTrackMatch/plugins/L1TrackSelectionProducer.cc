@@ -57,6 +57,7 @@
 #include "FWCore/Utilities/interface/EDMException.h"
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "Geometry/Records/interface/TrackerTopologyRcd.h"
+#include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 
 //
 // class declaration
@@ -294,6 +295,66 @@ private:
     std::vector<double> deltaZMax_;
   };
 
+  struct NNTrackSelector {
+    NNTrackSelector(tensorflow::Session* AssociationSesh, const double AssociationThreshold,const std::vector<double>& AssociationNetworkZ0binning,
+                    const double AssociationNetworkMaxPt, const std::vector<double>& AssociationNetworkEtaBounds,
+                    const std::vector<double>& AssociationNetworkZ0ResBins) 
+        : AssociationSesh_(AssociationSesh), AssociationThreshold_(AssociationThreshold), z0_binning_(AssociationNetworkZ0binning),
+          max_pt_(AssociationNetworkMaxPt), eta_bins_(AssociationNetworkEtaBounds), res_bins_(AssociationNetworkZ0ResBins) {}
+
+    template <typename VertexType>
+    bool associate(const L1Track& t, const VertexType& v) const {
+      tensorflow::Tensor inputAssoc(tensorflow::DT_FLOAT, {1, 4});
+      std::vector<tensorflow::Tensor> outputAssoc;
+
+      int etaBit = t.getTanlBits() < pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)) ? t.getTanlBits() : pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)) - t.getTanlBits();
+      auto up = std::upper_bound(eta_bins_.begin(), eta_bins_.end(), abs(t.momentum().eta()));
+
+
+
+      int resbin = (up - res_bins_.begin() - 1);
+
+      std::cout << etaBit << " " << abs(t.momentum().eta()) << " " << resbin << std::endl;
+
+      float binWidth = z0_binning_[2];
+
+      float dZ = abs(floor(((t.getZ0() + z0_binning_[1])/(binWidth))) - floor(((v.z0() + z0_binning_[1])/(binWidth))))/8.;
+
+      //std::cout << "track z0: " << floor(((t.z0() + max_z0)/(binWidth))) << " , Vertex z0: " << floor(((v.z0() + max_z0)/(binWidth))) << " , dZ: " <<  abs(floor(((t.z0() + max_z0)/(binWidth))) - floor(((v.z0() + max_z0)/(binWidth))))/8. << std::endl;
+
+      int pTBit = t.getRinvBits() <= pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1) ? t.getRinvBits() : t.getRinvBits()-(pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1));
+      
+      inputAssoc.tensor<float, 2>()(0, 0) = float(std::clamp(pTBit, 0, (int)max_pt_))/max_pt_;
+      inputAssoc.tensor<float, 2>()(0, 1) = t.getMVAQualityBits()/pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kMVAQualitySize));
+      inputAssoc.tensor<float, 2>()(0, 2) = res_bins_[resbin];
+      inputAssoc.tensor<float, 2>()(0, 3) = dZ;
+
+      // Run Association Network:
+      tensorflow::run(AssociationSesh_, {{"assoc:0", inputAssoc}}, {"Identity:0"}, &outputAssoc);
+      edm::LogInfo("L1TrackSelectionProducer") << "======" << "/n"
+                                               << t.momentum().eta() << " _ " << t.getTanlBits() << " _ " << etaBit << " , " << res_bins_[resbin] << "/n"
+                                               << t.phiSector() << " | " << t.getZ0Bits()/16 << "," << pTBit << "," << t.getMVAQualityBits() << "," << res_bins_[resbin] << "," << dZ << "," << (double)outputAssoc[0].tensor<float, 2>()(0,0) << "/n";
+
+
+      //std::cout << floor(((t.z0() + max_z0)/(binWidth))) << "," << float(std::clamp(pTBit, 0, 512))/512 << "," << t.getMVAQualityBits()/8. <<  "," << etaBit/(64*1024) << ","  << res_bins_[resbin] << "," << dZ  << "," << outputAssoc[0].tensor<float, 2>()(0,0) << std::endl;
+
+      return outputAssoc[0].tensor<float, 2>()(0,0) >= AssociationThreshold_;
+
+    }
+
+    private:
+      tensorflow::Session* AssociationSesh_;
+      double AssociationThreshold_;
+      std::vector<double> z0_binning_;
+      double max_pt_;
+      std::vector<double> eta_bins_;
+      std::vector<double> res_bins_;
+
+
+
+      
+  };
+
   typedef AndSelector<TTTrackPtMinSelector, TTTrackAbsEtaMaxSelector, TTTrackAbsZ0MaxSelector, TTTrackNStubsMinSelector>
       TTTrackPtMinEtaMaxZ0MaxNStubsMinSelector;
   typedef AndSelector<TTTrackWordPtMinSelector,
@@ -319,6 +380,17 @@ private:
   const double useDisplacedTracksDeltaZOverride_;
   bool processSimulatedTracks_, processEmulatedTracks_, doDeltaZCutSim_, doDeltaZCutEmu_;
   int debug_;
+
+  std::string AssociationGraphPath_;
+  const double AssociationThreshold_;
+  bool useAssociationNetwork_;
+
+  tensorflow::GraphDef* AssociationGraph_;
+  tensorflow::Session* AssociationSesh_;
+
+  std::vector<double> AssociationNetworkZ0binning_, AssociationNetworkEtaBounds_, AssociationNetworkZ0ResBins_;
+  const double AssociationNetworkMaxPt_;
+  
 };
 
 //
@@ -344,7 +416,20 @@ L1TrackSelectionProducer::L1TrackSelectionProducer(const edm::ParameterSet& iCon
       useDisplacedTracksDeltaZOverride_(iConfig.getParameter<double>("useDisplacedTracksDeltaZOverride")),
       processSimulatedTracks_(iConfig.getParameter<bool>("processSimulatedTracks")),
       processEmulatedTracks_(iConfig.getParameter<bool>("processEmulatedTracks")),
-      debug_(iConfig.getParameter<int>("debug")) {
+      debug_(iConfig.getParameter<int>("debug")),
+      
+      AssociationGraphPath_(iConfig.getParameter<std::string>("AssociationGraph")),
+      AssociationThreshold_(iConfig.getParameter<double>("AssociationThreshold")),
+      useAssociationNetwork_(iConfig.getParameter<bool>("useAssociationNetwork")),
+      AssociationNetworkZ0binning_(iConfig.getParameter<std::vector<double>>("AssociationNetworkZ0binning")),
+      AssociationNetworkEtaBounds_(iConfig.getParameter<std::vector<double>>("AssociationNetworkEtaBounds")),
+      AssociationNetworkZ0ResBins_(iConfig.getParameter<std::vector<double>>("AssociationNetworkZ0ResBins")),
+      AssociationNetworkMaxPt_(iConfig.getParameter<double>("AssociationNetworkMaxPt"))
+       {
+
+
+  AssociationGraph_ = tensorflow::loadGraphDef(AssociationGraphPath_);
+  AssociationSesh_ = tensorflow::createSession(AssociationGraph_);
   // Confirm the the configuration makes sense
   if (!processSimulatedTracks_ && !processEmulatedTracks_) {
     throw cms::Exception("You must process at least one of the track collections (simulated or emulated).");
@@ -365,7 +450,8 @@ L1TrackSelectionProducer::L1TrackSelectionProducer(const edm::ParameterSet& iCon
     produces<TTTrackRefCollection>(outputCollectionName_);
     if (iConfig.exists("l1VerticesInputTag")) {
       l1VerticesToken_ = consumes<l1t::VertexCollection>(iConfig.getParameter<edm::InputTag>("l1VerticesInputTag"));
-      doDeltaZCutSim_ = true;
+      if (useAssociationNetwork_ == false)
+        doDeltaZCutSim_ = true;
       produces<TTTrackRefCollection>(outputCollectionName_ + "Associated");
     }
   }
@@ -374,7 +460,8 @@ L1TrackSelectionProducer::L1TrackSelectionProducer(const edm::ParameterSet& iCon
     if (iConfig.exists("l1VerticesEmulationInputTag")) {
       l1VerticesEmulationToken_ =
           consumes<l1t::VertexWordCollection>(iConfig.getParameter<edm::InputTag>("l1VerticesEmulationInputTag"));
-      doDeltaZCutEmu_ = true;
+      if (useAssociationNetwork_ == false)
+        doDeltaZCutEmu_ = true;
       produces<TTTrackRefCollection>(outputCollectionName_ + "AssociatedEmulation");
     }
   }
@@ -544,6 +631,10 @@ void L1TrackSelectionProducer::produce(edm::StreamID, edm::Event& iEvent, const 
     vTTTrackAssociatedEmulationOutput->reserve(nOutputApproximate);
   }
 
+  NNTrackSelector TTTrackNetworkSelector(AssociationSesh_,AssociationThreshold_,
+                                         AssociationNetworkZ0binning_,AssociationNetworkMaxPt_,
+                                         AssociationNetworkEtaBounds_,AssociationNetworkZ0ResBins_);
+
   TTTrackPtMinEtaMaxZ0MaxNStubsMinSelector kinSel(ptMin_, absEtaMax_, absZ0Max_, nStubsMin_);
   TTTrackWordPtMinEtaMaxZ0MaxNStubsMinSelector kinSelEmu(ptMin_, absEtaMax_, absZ0Max_, nStubsMin_);
   TTTrackBendChi2Chi2RZChi2RPhiMaxSelector chi2Sel(bendChi2Max_, reducedChi2RZMax_, reducedChi2RPhiMax_);
@@ -561,6 +652,9 @@ void L1TrackSelectionProducer::produce(edm::StreamID, edm::Event& iEvent, const 
       if (doDeltaZCutSim_ && deltaZSel(track, leadingVertex)) {
         vTTTrackAssociatedOutput->push_back(TTTrackRef(l1TracksHandle, i));
       }
+      if (useAssociationNetwork_ && TTTrackNetworkSelector.associate<l1t::Vertex>(track, leadingVertex)) {
+        vTTTrackAssociatedOutput->push_back(TTTrackRef(l1TracksHandle, i));
+      }
     }
 
     // Select tracks based on the bitwise accurate TTTrack_TrackWord
@@ -568,6 +662,9 @@ void L1TrackSelectionProducer::produce(edm::StreamID, edm::Event& iEvent, const 
       vTTTrackEmulationOutput->push_back(TTTrackRef(l1TracksHandle, i));
       if (doDeltaZCutEmu_ && deltaZSelEmu(track, leadingEmulationVertex)) {
         vTTTrackAssociatedEmulationOutput->push_back(TTTrackRef(l1TracksHandle, i));
+      }
+      if (useAssociationNetwork_ && TTTrackNetworkSelector.associate<l1t::VertexWord>(track, leadingEmulationVertex)) {
+        vTTTrackAssociatedOutput->push_back(TTTrackRef(l1TracksHandle, i));
       }
     }
   }
@@ -586,10 +683,16 @@ void L1TrackSelectionProducer::produce(edm::StreamID, edm::Event& iEvent, const 
     if (doDeltaZCutSim_) {
       iEvent.put(std::move(vTTTrackAssociatedOutput), outputCollectionName_ + "Associated");
     }
+    if (useAssociationNetwork_){
+      iEvent.put(std::move(vTTTrackAssociatedOutput), outputCollectionName_ + "Associated");
+    }
   }
   if (processEmulatedTracks_) {
     iEvent.put(std::move(vTTTrackEmulationOutput), outputCollectionName_ + "Emulation");
     if (doDeltaZCutEmu_) {
+      iEvent.put(std::move(vTTTrackAssociatedEmulationOutput), outputCollectionName_ + "AssociatedEmulation");
+    }
+    if (useAssociationNetwork_){
       iEvent.put(std::move(vTTTrackAssociatedEmulationOutput), outputCollectionName_ + "AssociatedEmulation");
     }
   }
@@ -632,6 +735,14 @@ void L1TrackSelectionProducer::fillDescriptions(edm::ConfigurationDescriptions& 
   desc.add<bool>("processEmulatedTracks", true)
       ->setComment("return selected tracks after cutting on the bitwise emulated values");
   desc.add<int>("debug", 0)->setComment("Verbosity levels: 0, 1, 2, 3");
+  desc.add<bool>("useAssociationNetwork",false)->setComment("Enable Association Network");
+  desc.add<double>("AssociationThreshold",0)->setComment("Association Network threshold for PV tracks");
+  desc.add<std::string>("AssociationGraph","")->setComment("Location of Association Network model file");
+  desc.add<std::vector<double>>("AssociationNetworkZ0binning",{})->setComment("z0 binning used for setting the input feature digitisation");
+  desc.add<double>("AssociationNetworkMaxPt",512)->setComment("Digitised pT value at which values are truncated for input feature");
+  desc.add<double>("AssociationNetworkEtaBounds",{})->setComment("Eta bounds used to set z0 resolution input feature");
+  desc.add<double>("AssociationNetworkZ0ResBins",{})->setComment("z0 resolution input feature bins");
+
   descriptions.addWithDefaultLabel(desc);
 }
 

@@ -233,12 +233,12 @@ void L1VertexNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetu
   iEvent.getByToken(GenVertexToken_, GenVertexHandle);
 
   //Vertex
-  edm::Handle<l1t::VertexCollection> L1TkPrimaryVertexHandle;
-  iEvent.getByToken(L1VertexToken_, L1TkPrimaryVertexHandle);
+  edm::Handle<l1t::VertexCollection> L1PrimaryVertexHandle;
+  iEvent.getByToken(L1VertexToken_, L1PrimaryVertexHandle);
   std::vector<l1t::Vertex>::const_iterator vtxIter;
 
-  edm::Handle<l1t::VertexWordCollection> L1TkPrimaryVertexEmuHandle;
-  iEvent.getByToken(L1VertexEmuToken_, L1TkPrimaryVertexEmuHandle);
+  edm::Handle<l1t::VertexWordCollection> L1PrimaryVertexEmuHandle;
+  iEvent.getByToken(L1VertexEmuToken_, L1PrimaryVertexEmuHandle);
   std::vector<l1t::VertexWord>::const_iterator vtxEmuIter;
 
   if (GenVertexHandle.isValid()) {
@@ -268,21 +268,21 @@ void L1VertexNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetu
   }
 
   //Primary reco vertex
-  if (L1TkPrimaryVertexHandle.isValid()) {
-    for (vtxIter = L1TkPrimaryVertexHandle->begin(); vtxIter != L1TkPrimaryVertexHandle->end(); ++vtxIter) {
+  if (L1PrimaryVertexHandle.isValid()) {
+    for (vtxIter = L1PrimaryVertexHandle->begin(); vtxIter != L1PrimaryVertexHandle->end(); ++vtxIter) {
       m_pv_L1reco->push_back(vtxIter->z0());
       m_pv_L1reco_sum->push_back(vtxIter->pt());
     }
   } else
-    edm::LogWarning("DataNotFound") << "\nWarning: L1TkPrimaryVertexHandle not found" << std::endl;
+    edm::LogWarning("DataNotFound") << "\nWarning: L1PrimaryVertexHandle not found" << std::endl;
 
-  if (L1TkPrimaryVertexEmuHandle.isValid()) {
-    for (vtxEmuIter = L1TkPrimaryVertexEmuHandle->begin(); vtxEmuIter != L1TkPrimaryVertexEmuHandle->end();
+  if (L1PrimaryVertexEmuHandle.isValid()) {
+    for (vtxEmuIter = L1PrimaryVertexEmuHandle->begin(); vtxEmuIter != L1PrimaryVertexEmuHandle->end();
          ++vtxEmuIter) {
       m_pv_L1reco_emu->push_back(vtxEmuIter->z0());
     }
   } else
-    edm::LogWarning("DataNotFound") << "\nWarning: L1TkPrimaryVertexEmuHandle not found" << std::endl;
+    edm::LogWarning("DataNotFound") << "\nWarning: L1PrimaryVertexEmuHandle not found" << std::endl;
 
   eventTree->Fill();
 }  // end of analyze()

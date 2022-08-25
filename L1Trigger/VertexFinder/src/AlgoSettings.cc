@@ -30,9 +30,10 @@ namespace l1tVertexFinder {
         vx_kmeans_iterations_(vertex_.getParameter<unsigned int>("KmeansIterations")),
         vx_kmeans_nclusters_(vertex_.getParameter<unsigned int>("KmeansNumClusters")),
         vx_smear_(vertex_.getParameter<double>("GenVxSmear")),
-        vx_cnn_trkw_graph_(vertex_.getParameter<std::string>("CNNTrackWeightGraph")),
-        vx_cnn_pvz0_graph_(vertex_.getParameter<std::string>("CNNPVZ0Graph")),
-        vx_cnn_graph_(vertex_.getParameter<std::string>("CNNGraph")),
+        vx_trkw_graph_(vertex_.getParameter<std::string>("TrackWeightGraph")),
+        vx_pvz0_graph_(vertex_.getParameter<std::string>("PVZ0Graph")),
+        apply_z0Correction_(vertex_.getParameter<bool>("apply_z0Correction")),
+        z0Correction_(vertex_.getParameter<double>("z0Correction")),
         // Debug printout
         debug_(iConfig.getParameter<unsigned int>("debug")) {
     const std::string algoName(vertex_.getParameter<std::string>("Algorithm"));
@@ -70,7 +71,6 @@ namespace l1tVertexFinder {
       {"HPV", Algorithm::HPV},
       {"K-means", Algorithm::Kmeans},
       {"Generator", Algorithm::Generator},
-      {"NN", Algorithm::NN},
       {"NNEmulation", Algorithm::NNEmulation} };
 
   const std::map<Algorithm, Precision> AlgoSettings::algoPrecisionMap = {
@@ -85,7 +85,6 @@ namespace l1tVertexFinder {
       {Algorithm::HPV, Precision::Simulation},
       {Algorithm::Kmeans, Precision::Simulation},
       {Algorithm::Generator, Precision::Simulation},
-      {Algorithm::NN, Precision::Simulation},
       {Algorithm::NNEmulation, Precision::Emulation} };
 
 }  // end namespace l1tVertexFinder

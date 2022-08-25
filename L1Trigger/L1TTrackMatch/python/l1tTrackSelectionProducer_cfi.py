@@ -23,7 +23,15 @@ l1tTrackSelectionProducer = cms.EDProducer('L1TrackSelectionProducer',
   useDisplacedTracksDeltaZOverride = cms.double(-1.0), # override the deltaZ cut value for displaced tracks
   processSimulatedTracks = cms.bool(True), # return selected tracks after cutting on the floating point values
   processEmulatedTracks = cms.bool(True), # return selected tracks after cutting on the bitwise emulated values
-  debug = cms.int32(0) # Verbosity levels: 0, 1, 2, 3, 4
+  debug = cms.int32(0), # Verbosity levels: 0, 1, 2, 3, 4
+
+  useAssociationNetwork = cms.bool(True), #Enable Association Network
+  AssociationThreshold = cms.double(0.5), #Association Network threshold for PV tracks
+  AssociationGraph = cms.string("L1Trigger/L1TTrackMatch/data/Quantised_model_prune_iteration_9_associationModelgraph.pb"), #Location of Association Network model file
+  AssociationNetworkZ0binning = VertexProducer.VertexReconstruction.FH_HistogramParameters, #Z0 binning used for setting the input feature digitisation
+  AssociationNetworkMaxPt = VertexProducer.VertexReconstruction.VxMaxTrackPt, #Digitised pT value at which values are truncated for input feature
+  AssociationNetworkEtaBounds = cms.vdouble(0.0,0.2,0.4,0.6,0.8,1.0,1.2,1.4,1.6,1.8,2,2.2,2.4,3.0), #Eta bounds used to set z0 resolution input feature
+  AssociationNetworkZ0ResBins = cms.vdouble(0.0,0.1,0.1,0.12,0.14,0.16,0.18,0.23,0.23,0.3,0.35,0.38,0.42,0.5,1) #z0 resolution input feature bins
 )
 
 l1tTrackSelectionProducerExtended = l1tTrackSelectionProducer.clone(

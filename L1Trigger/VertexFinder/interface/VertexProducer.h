@@ -44,12 +44,10 @@ private:
   const std::string outputCollectionName_;
   const edm::EDGetTokenT<TTTrackAssociationMap< Ref_Phase2TrackerDigi_ > > ttTrackMCTruthToken_;
   
-  tensorflow::GraphDef* cnnAssGraph_;
-  tensorflow::Session* cnnAssSesh_;
-  tensorflow::GraphDef* cnnTrkGraph_;
-  tensorflow::Session* cnnTrkSesh_;
-  tensorflow::GraphDef* cnnPVZ0Graph_;
-  tensorflow::Session* cnnPVZ0Sesh_;
+  tensorflow::GraphDef* TrkGraph_;
+  tensorflow::Session* TrkSesh_;
+  tensorflow::GraphDef* PVZ0Graph_;
+  tensorflow::Session* PVZ0Sesh_;
 
   l1tVertexFinder::AlgoSettings settings_;
 };

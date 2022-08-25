@@ -133,9 +133,9 @@ namespace l1tVertexFinder {
                                        const std::vector<float>& bin_centers,
                                        const std::vector<unsigned int>& counts);
         /// Histogramming algorithm + cnn position
-    void CNNPVZ0Algorithm(tensorflow::Session* cnnTrkSesh = 0, tensorflow::Session* cnnPVZ0Sesh = 0, tensorflow::Session* cnnAssSesh = 0);
+    void NNVtx(tensorflow::Session* cnnTrkSesh = 0, tensorflow::Session* cnnPVZ0Sesh = 0, tensorflow::Session* AssociationSesh = 0);
 
-    void CNNPVZ0Emulation(tensorflow::Session* cnnTrkSesh = 0, tensorflow::Session* cnnPVZ0Sesh = 0, tensorflow::Session* cnnAssSesh = 0);
+    void NNVtxEmulation(tensorflow::Session* cnnTrkSesh = 0, tensorflow::Session* cnnPVZ0Sesh = 0, tensorflow::Session* AssociationSesh = 0);
 
     /// DBSCAN algorithm
     void DBSCAN();

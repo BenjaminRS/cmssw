@@ -60,9 +60,6 @@ VertexProducer::VertexProducer(const edm::ParameterSet& iConfig)
     case Algorithm::Generator:
       edm::LogInfo("VertexProducer") << "VertexProducer::Finding vertices using ** GENERATOR ** vertex (average of TP z0s)";
       break;
-    case Algorithm::NN:
-      edm::LogInfo("VertexProducer") << "VertexProducer::Finding vertices using the Neural Network algorithm";
-      break;
     case Algorithm::NNEmulation:
       edm::LogInfo("VertexProducer") << "VertexProducer::Finding vertices using the Neural Network Emulation";
       break;
@@ -75,34 +72,16 @@ VertexProducer::VertexProducer(const edm::ParameterSet& iConfig)
     produces<l1t::VertexCollection>(outputCollectionName_);
   }
 
-    if (settings_.vx_algo() == Algorithm::NN) {
-    // load graphs, create a new session and add the graphDef
-    std::cout << "loading cnn trk weight graph from " << settings_.vx_cnn_trkw_graph() << std::endl;
-    cnnTrkGraph_ = tensorflow::loadGraphDef(settings_.vx_cnn_trkw_graph());
-    cnnTrkSesh_ = tensorflow::createSession(cnnTrkGraph_);
-
-    std::cout << "loading cnn pv z0 graph from " << settings_.vx_cnn_pvz0_graph() << std::endl;
-    cnnPVZ0Graph_ = tensorflow::loadGraphDef(settings_.vx_cnn_pvz0_graph());
-    cnnPVZ0Sesh_ = tensorflow::createSession(cnnPVZ0Graph_);
-
-    std::cout << "loading cnn association graph from " << settings_.vx_cnn_graph() << std::endl;
-    cnnAssGraph_ = tensorflow::loadGraphDef(settings_.vx_cnn_graph());
-    cnnAssSesh_ = tensorflow::createSession(cnnAssGraph_);
-  }
-
     if (settings_.vx_algo() == Algorithm::NNEmulation) {
     // load graphs, create a new session and add the graphDef
-    std::cout << "loading cnn trk weight graph from " << settings_.vx_cnn_trkw_graph() << std::endl;
-    cnnTrkGraph_ = tensorflow::loadGraphDef(settings_.vx_cnn_trkw_graph());
-    cnnTrkSesh_ = tensorflow::createSession(cnnTrkGraph_);
-
-    std::cout << "loading cnn pv z0 graph from " << settings_.vx_cnn_pvz0_graph() << std::endl;
-    cnnPVZ0Graph_ = tensorflow::loadGraphDef(settings_.vx_cnn_pvz0_graph());
-    cnnPVZ0Sesh_ = tensorflow::createSession(cnnPVZ0Graph_);
-
-    std::cout << "loading cnn association graph from " << settings_.vx_cnn_graph() << std::endl;
-    cnnAssGraph_ = tensorflow::loadGraphDef(settings_.vx_cnn_graph());
-    cnnAssSesh_ = tensorflow::createSession(cnnAssGraph_);
+      if (settings_.debug() > 1) {
+        edm::LogInfo("VertexProducer") << "loading trk weight graph from " << settings_.vx_trkw_graph() << std::endl;
+        edm::LogInfo("VertexProducer") << "loading pv z0 graph from " << settings_.vx_pvz0_graph() << std::endl;
+      }
+      TrkGraph_ = tensorflow::loadGraphDef(settings_.vx_trkw_graph());
+      TrkSesh_ = tensorflow::createSession(TrkGraph_);
+      PVZ0Graph_ = tensorflow::loadGraphDef(settings_.vx_pvz0_graph());
+      PVZ0Sesh_ = tensorflow::createSession(PVZ0Graph_);
   }
 }
 
@@ -111,6 +90,7 @@ void VertexProducer::produce(edm::StreamID, edm::Event& iEvent, const edm::Event
   iEvent.getByToken(l1TracksToken_, l1TracksHandle);
 
   std::vector<l1tVertexFinder::L1Track> l1Tracks;
+
   l1Tracks.reserve(l1TracksHandle->size());
   if (settings_.debug() > 1) {
     edm::LogInfo("VertexProducer") << "produce::Processing " << l1TracksHandle->size() << " tracks";
@@ -183,12 +163,8 @@ void VertexProducer::produce(edm::StreamID, edm::Event& iEvent, const edm::Event
       vf.Generator(pvTracks);
       break;
     }
-    case Algorithm::NN:
-      vf.CNNPVZ0Algorithm(cnnTrkSesh_, cnnPVZ0Sesh_, cnnAssSesh_);
-      break;
-
     case Algorithm::NNEmulation:
-      vf.CNNPVZ0Emulation(cnnTrkSesh_, cnnPVZ0Sesh_, cnnAssSesh_);
+      vf.NNVtxEmulation(TrkSesh_, PVZ0Sesh_);
       break;
   }
 
@@ -196,7 +172,7 @@ void VertexProducer::produce(edm::StreamID, edm::Event& iEvent, const edm::Event
   vf.findPrimaryVertex();
 
   // //=== Store output EDM track and hardware stub collections.
-  if ((settings_.vx_algo() == Algorithm::fastHistoEmulation) | (settings_.vx_algo() == Algorithm::NNEmulation)) {
+  if ((settings_.vx_algo() == Algorithm::fastHistoEmulation) || (settings_.vx_algo() == Algorithm::NNEmulation)) {
     std::unique_ptr<l1t::VertexWordCollection> product_emulation =
         std::make_unique<l1t::VertexWordCollection>(vf.verticesEmulation().begin(), vf.verticesEmulation().end());
     iEvent.put(std::move(product_emulation), outputCollectionName_ + "Emulation");
