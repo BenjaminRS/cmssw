@@ -11,7 +11,6 @@
 #include "L1Trigger/VertexFinder/interface/RecoVertex.h"
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 
-
 #include <algorithm>
 #include <cmath>
 #include <iterator>
@@ -132,10 +131,14 @@ namespace l1tVertexFinder {
     void computeAndSetVertexParameters(RecoVertex<>& vertex,
                                        const std::vector<float>& bin_centers,
                                        const std::vector<unsigned int>& counts);
-        /// Histogramming algorithm + cnn position
-    void NNVtx(tensorflow::Session* cnnTrkSesh = 0, tensorflow::Session* cnnPVZ0Sesh = 0, tensorflow::Session* AssociationSesh = 0);
+    /// Histogramming algorithm + cnn position
+    void NNVtx(tensorflow::Session* cnnTrkSesh = 0,
+               tensorflow::Session* cnnPVZ0Sesh = 0,
+               tensorflow::Session* AssociationSesh = 0);
 
-    void NNVtxEmulation(tensorflow::Session* cnnTrkSesh = 0, tensorflow::Session* cnnPVZ0Sesh = 0, tensorflow::Session* AssociationSesh = 0);
+    void NNVtxEmulation(tensorflow::Session* cnnTrkSesh = 0,
+                        tensorflow::Session* cnnPVZ0Sesh = 0,
+                        tensorflow::Session* AssociationSesh = 0);
 
     /// DBSCAN algorithm
     void DBSCAN();

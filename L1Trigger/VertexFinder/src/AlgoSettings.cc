@@ -71,7 +71,7 @@ namespace l1tVertexFinder {
       {"HPV", Algorithm::HPV},
       {"K-means", Algorithm::Kmeans},
       {"Generator", Algorithm::Generator},
-      {"NNEmulation", Algorithm::NNEmulation} };
+      {"NNEmulation", Algorithm::NNEmulation}};
 
   const std::map<Algorithm, Precision> AlgoSettings::algoPrecisionMap = {
       {Algorithm::fastHisto, Precision::Simulation},
@@ -85,6 +85,6 @@ namespace l1tVertexFinder {
       {Algorithm::HPV, Precision::Simulation},
       {Algorithm::Kmeans, Precision::Simulation},
       {Algorithm::Generator, Precision::Simulation},
-      {Algorithm::NNEmulation, Precision::Emulation} };
+      {Algorithm::NNEmulation, Precision::Emulation}};
 
 }  // end namespace l1tVertexFinder

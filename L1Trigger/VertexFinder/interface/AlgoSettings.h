@@ -56,7 +56,9 @@ namespace l1tVertexFinder {
     double vx_histogram_min() const { return vx_histogram_parameters_.at(0); }
     double vx_histogram_max() const { return vx_histogram_parameters_.at(1); }
     double vx_histogram_binwidth() const { return vx_histogram_parameters_.at(2); }
-    int vx_histogram_numbins() const { return (vx_histogram_parameters_.at(1) - vx_histogram_parameters_.at(0))/vx_histogram_parameters_.at(2); }
+    int vx_histogram_numbins() const {
+      return (vx_histogram_parameters_.at(1) - vx_histogram_parameters_.at(0)) / vx_histogram_parameters_.at(2);
+    }
     // fastHisto assumed vertex width
     float vx_width() const { return vx_width_; }
     // fastHisto track selection control
@@ -78,8 +80,8 @@ namespace l1tVertexFinder {
     // Functions for NN:
     std::string vx_trkw_graph() const { return vx_trkw_graph_; }
     std::string vx_pvz0_graph() const { return vx_pvz0_graph_; }
-    bool apply_z0Correction() const {return apply_z0Correction_; }
-    float z0Correction() const {return z0Correction_; }
+    bool apply_z0Correction() const { return apply_z0Correction_; }
+    float z0Correction() const { return z0Correction_; }
     float vx_smear() const { return vx_smear_; }
     //=== Debug printout
     unsigned int debug() const { return debug_; }

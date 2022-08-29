@@ -42,8 +42,8 @@ private:
   const edm::EDGetTokenT<TTTrackCollectionView> l1TracksToken_;
   const edm::ESGetToken<TrackerTopology, TrackerTopologyRcd> tTopoToken;
   const std::string outputCollectionName_;
-  const edm::EDGetTokenT<TTTrackAssociationMap< Ref_Phase2TrackerDigi_ > > ttTrackMCTruthToken_;
-  
+  const edm::EDGetTokenT<TTTrackAssociationMap<Ref_Phase2TrackerDigi_>> ttTrackMCTruthToken_;
+
   tensorflow::GraphDef* TrkGraph_;
   tensorflow::Session* TrkSesh_;
   tensorflow::GraphDef* PVZ0Graph_;

@@ -667,62 +667,53 @@ namespace l1tVertexFinder {
         continue;
       if (track.pt() < settings_->vx_TrackMinPt())
         continue;
-      if ((int)track.getTTTrackPtr()->getStubRefs().size() < 4) //CS ADD
-	      continue;
-      if (track.eta() > 2.4 || track.eta() < -2.4) //CS ADD
-	      continue;
-      //if (track.getTTTrackPtr()->trkMVA1() < 0.8)
-	    //  continue;
-      //if (track.getTTTrackPtr()->chi2Z() > 5 || track.getTTTrackPtr()->chi2XY() > 20 ||
-	    //  track.getTTTrackPtr()->stubPtConsistency() > 2.25)
-	    //  continue;
 
       // Get the number of stubs and the number of stubs in PS layers
-      // float nPS = 0., nstubs = 0;
+      float nPS = 0., nstubs = 0;
 
-      // // Get pointers to stubs associated to the L1 track
-      // const auto& theStubs = track.getTTTrackPtr()->getStubRefs();
-      // if (theStubs.empty()) {
-      //   edm::LogWarning("VertexFinder") << "fastHisto::Could not retrieve the vector of stubs.";
-      //   continue;
-      // }
+      // Get pointers to stubs associated to the L1 track
+      const auto& theStubs = track.getTTTrackPtr()->getStubRefs();
+      if (theStubs.empty()) {
+        edm::LogWarning("VertexFinder") << "fastHisto::Could not retrieve the vector of stubs.";
+        continue;
+      }
 
-      // // Loop over the stubs
-      // for (const auto& stub : theStubs) {
-      //   nstubs++;
-      //   bool isPS = false;
-      //   DetId detId(stub->getDetId());
-      //   if (detId.det() == DetId::Detector::Tracker) {
-      //     if (detId.subdetId() == StripSubdetector::TOB && tTopo->tobLayer(detId) <= 3)
-      //       isPS = true;
-      //     else if (detId.subdetId() == StripSubdetector::TID && tTopo->tidRing(detId) <= 9)
-      //       isPS = true;
-      //   }
-      //   if (isPS)
-      //     nPS++;
-      // }  // End loop over stubs
-      // if (nstubs < settings_->vx_NStubMin())
-      //   continue;
-      // if (nPS < settings_->vx_NStubPSMin())
-      //   continue;
+      // Loop over the stubs
+      for (const auto& stub : theStubs) {
+        nstubs++;
+        bool isPS = false;
+        DetId detId(stub->getDetId());
+        if (detId.det() == DetId::Detector::Tracker) {
+          if (detId.subdetId() == StripSubdetector::TOB && tTopo->tobLayer(detId) <= 3)
+            isPS = true;
+          else if (detId.subdetId() == StripSubdetector::TID && tTopo->tidRing(detId) <= 9)
+            isPS = true;
+        }
+        if (isPS)
+          nPS++;
+      }  // End loop over stubs
+      if (nstubs < settings_->vx_NStubMin())
+        continue;
+      if (nPS < settings_->vx_NStubPSMin())
+        continue;
 
-      // // Quality cuts, may need to be re-optimized
-      // int trk_nstub = (int)track.getTTTrackPtr()->getStubRefs().size();
-      // float chi2dof = track.getTTTrackPtr()->chi2() / (2 * trk_nstub - 4);
+      // Quality cuts, may need to be re-optimized
+      int trk_nstub = (int)track.getTTTrackPtr()->getStubRefs().size();
+      float chi2dof = track.getTTTrackPtr()->chi2() / (2 * trk_nstub - 4);
 
-      // if (settings_->vx_DoPtComp()) {
-      //   float trk_consistency = track.getTTTrackPtr()->stubPtConsistency();
-      //   if (trk_nstub == 4) {
-      //     if (std::abs(track.eta()) < 2.2 && trk_consistency > 10)
-      //       continue;
-      //     else if (std::abs(track.eta()) > 2.2 && chi2dof > 5.0)
-      //       continue;
-      //   }
-      // }
-      // if (settings_->vx_DoTightChi2()) {
-      //   if (track.pt() > 10.0 && chi2dof > 5.0)
-      //     continue;
-      // }
+      if (settings_->vx_DoPtComp()) {
+        float trk_consistency = track.getTTTrackPtr()->stubPtConsistency();
+        if (trk_nstub == 4) {
+          if (std::abs(track.eta()) < 2.2 && trk_consistency > 10)
+            continue;
+          else if (std::abs(track.eta()) > 2.2 && chi2dof > 5.0)
+            continue;
+        }
+      }
+      if (settings_->vx_DoTightChi2()) {
+        if (track.pt() > 10.0 && chi2dof > 5.0)
+          continue;
+      }
 
       // Assign the track to the correct vertex
       // The values are ordered with bounds [lower, upper)
@@ -1097,38 +1088,44 @@ namespace l1tVertexFinder {
     pv_index_ = 0;
   }  // end of fastHistoEmulation
 
-  void VertexFinder::NNVtxEmulation(tensorflow::Session* cnnTrkSesh, tensorflow::Session* cnnPVZ0Sesh, tensorflow::Session* AssociationSesh) {
+  void VertexFinder::NNVtxEmulation(tensorflow::Session* cnnTrkSesh,
+                                    tensorflow::Session* cnnPVZ0Sesh,
+                                    tensorflow::Session* AssociationSesh) {
     // #### Weight Tracks: ####
     // Loop over tracks -> weight the network -> set track weights
     tensorflow::Tensor inputTrkWeight(tensorflow::DT_FLOAT, {1, 3});  //Single batch of 3 values
     uint counter = 0;
 
     for (auto& track : fitTracks_) {
-      // Chris' Quantised Network: Use values from L1GTTInputProducer pT, MVA1, eta
+      // Quantised Network: Use values from L1GTTInputProducer pT, MVA1, eta
       auto& gttTrack = fitTracks_.at(counter);
-      int pTBit = gttTrack.getTTTrackPtr()->getRinvBits() <= pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1) ? gttTrack.getTTTrackPtr()->getRinvBits() : gttTrack.getTTTrackPtr()->getRinvBits()-(pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1));
-      int etaBit = gttTrack.getTTTrackPtr()->getTanlBits() < pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)-1) ? gttTrack.getTTTrackPtr()->getTanlBits() : pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)) - gttTrack.getTTTrackPtr()->getTanlBits();
+      int pTBit =
+          gttTrack.getTTTrackPtr()->getRinvBits() <= pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1)
+              ? gttTrack.getTTTrackPtr()->getRinvBits()
+              : gttTrack.getTTTrackPtr()->getRinvBits() -
+                    (pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1));
+      int etaBit =
+          gttTrack.getTTTrackPtr()->getTanlBits() < pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)-1)
+              ? gttTrack.getTTTrackPtr()->getTanlBits()
+              : pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)) - gttTrack.getTTTrackPtr()->getTanlBits();
 
-      inputTrkWeight.tensor<float, 2>()(0, 0) = float(std::clamp(pTBit, 0, (int)settings_->vx_TrackMaxPt()))/((int)settings_->vx_TrackMaxPt());
-      inputTrkWeight.tensor<float, 2>()(0, 1) = gttTrack.getTTTrackPtr()->getMVAQualityBits()/pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kMVAQualitySize));
-      inputTrkWeight.tensor<float, 2>()(0, 2) = etaBit/pow(2,(int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize));
+      inputTrkWeight.tensor<float, 2>()(0, 0) =
+          float(std::clamp(pTBit, 0, (int)settings_->vx_TrackMaxPt())) / ((int)settings_->vx_TrackMaxPt());
+      inputTrkWeight.tensor<float, 2>()(0, 1) = gttTrack.getTTTrackPtr()->getMVAQualityBits() /
+                                                pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kMVAQualitySize));
+      inputTrkWeight.tensor<float, 2>()(0, 2) = etaBit / pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize));
       // CNN output: track weight
       std::vector<tensorflow::Tensor> outputTrkWeight;
       tensorflow::run(cnnTrkSesh, {{"weight:0", inputTrkWeight}}, {"Identity:0"}, &outputTrkWeight);
       // Set track weight pack into tracks:
       track.setWeight((double)outputTrkWeight[0].tensor<float, 2>()(0, 0));
 
-
-      //edm::LogVerbatim("VertexFinder") 
-      //std::cout << floor(((gttTrack.getTTTrackPtr()->z0() + 20.46912512)/((2*20.46912512)/256.))) << " , " << float(std::clamp(pTBit, 0, 512))/512. << " , " <<  gttTrack.getTTTrackPtr()->getMVAQualityBits()/8. << " , " << etaBit/1024. << " , " << (double)outputTrkWeight[0].tensor<float, 2>()(0, 0) << std::endl;
-
-      //std::cout << gttTrack.getTTTrackPtr()->phiSector() << " | " << gttTrack.getTTTrackPtr()->getZ0Bits()/16 << "," << pTBit << "," << gttTrack.getTTTrackPtr()->getMVAQualityBits() << "," << etaBit << "," << (double)outputTrkWeight[0].tensor<float, 2>()(0, 0)*16. << std::endl;
-
       ++counter;
     }
 
     // #### Find Vertices: ####
-    tensorflow::Tensor inputPV(tensorflow::DT_FLOAT, {1, settings_->vx_histogram_numbins(), 1});  //Single batch with 256 bins and 1 weight
+    tensorflow::Tensor inputPV(tensorflow::DT_FLOAT,
+                               {1, settings_->vx_histogram_numbins(), 1});  //Single batch with 256 bins and 1 weight
     std::vector<tensorflow::Tensor> outputPV;
     RecoVertexCollection vertices(settings_->vx_histogram_numbins());
     std::map<float, int> vertexMap;
@@ -1139,79 +1136,71 @@ namespace l1tVertexFinder {
 
     int track_z = 0;
 
-    for (int z = 0; z < settings_->vx_histogram_numbins(); z+=1){
+    for (int z = 0; z < settings_->vx_histogram_numbins(); z += 1) {
       counter = 0;
       double vxWeight = 0;
 
       for (const L1Track& track : fitTracks_) {
         auto& gttTrack = fitTracks_.at(counter);
         double temp_z0 = gttTrack.getTTTrackPtr()->z0();
-        if (settings_->apply_z0Correction()){
+        if (settings_->apply_z0Correction()) {
           if (temp_z0 > 0.)
             temp_z0 = temp_z0 + settings_->z0Correction();
           else if (temp_z0 < 0.)
             temp_z0 = temp_z0 - settings_->z0Correction();
         }
 
-        track_z = std::floor((temp_z0 + settings_->vx_histogram_max())/binWidth);
+        track_z = std::floor((temp_z0 + settings_->vx_histogram_max()) / binWidth);
 
-        if (track_z >= z  && track_z < (z + 1)) {
+        if (track_z >= z && track_z < (z + 1)) {
           vertices.at(z).insert(&track);
           vxWeight += track.weight();
         }
-         ++counter;
+        ++counter;
       }
       // Get centre of bin before setting z0
-      vertices.at(z).setZ0( ((z + 0.5 ) * binWidth) - settings_->vx_histogram_max());
+      vertices.at(z).setZ0(((z + 0.5) * binWidth) - settings_->vx_histogram_max());
 
-      vertexMap[vxWeight]=z; 
+      vertexMap[vxWeight] = z;
       inputPV.tensor<float, 3>()(0, z, 0) = vxWeight;
       //Fill histogram for 3 bin sliding window:
-      histogram[z]=vxWeight;
-
+      histogram[z] = vxWeight;
     }
 
     // Run PV Network:
     tensorflow::run(cnnPVZ0Sesh, {{"hist:0", inputPV}}, {"Identity:0"}, &outputPV);
-
-    for (int i(0);i<settings_->vx_histogram_numbins();++i){
-      if (outputPV[0].tensor<float, 3>()(0, i, 0) >= 0.1250){
-        nnOutput[i]=outputPV[0].tensor<float, 3>()(0, i, 0); 
+    // Threshold needed due to rounding differences in internal CNN layer emulation versus firmware
+    const float histogrammingThreshold_ = 0.125;
+    for (int i(0); i < settings_->vx_histogram_numbins(); ++i) {
+      if (outputPV[0].tensor<float, 3>()(0, i, 0) >= histogrammingThreshold_) {
+        nnOutput[i] = outputPV[0].tensor<float, 3>()(0, i, 0);
       }
     }
 
-    //Find max then find all occurances of it in histogram and average their position -> python argmax layer 
+    //Find max then find all occurances of it in histogram and average their position -> python argmax layer
     //Performance is not optimised for multiple peaks in histogram or spread peaks these are edge cases, need to revisit
     int max_index = 0;
     int num_maxes = 0;
     float max_element = 0.0;
-    for (int i(0); i< settings_->vx_histogram_numbins(); ++i){
-      if (nnOutput[i] > max_element){ 
+    for (int i(0); i < settings_->vx_histogram_numbins(); ++i) {
+      if (nnOutput[i] > max_element) {
         max_element = nnOutput[i];
       }
     }
 
-    for (int i(0); i< settings_->vx_histogram_numbins(); ++i){
-      if (nnOutput[i] == max_element){ 
+    for (int i(0); i < settings_->vx_histogram_numbins(); ++i) {
+      if (nnOutput[i] == max_element) {
         num_maxes++;
         max_index += i;
       }
     }
-    int PV_index = ceil((float)max_index/(float)num_maxes);
+    int PV_index = ceil((float)max_index / (float)num_maxes);
     // Argmax equivalent:
-    edm::LogVerbatim("VertexFinder") << " NNemu Chosen PV: prob: "<< nnOutput[PV_index]
-                                     << " bin = " << PV_index
-                                     << " z0 = "  << vertices.at(PV_index).z0()
-                                     << '\n';
+    edm::LogVerbatim("VertexFinder") << " NNemu Chosen PV: prob: " << nnOutput[PV_index] << " bin = " << PV_index
+                                     << " z0 = " << vertices.at(PV_index).z0() << '\n';
 
-    verticesEmulation_.emplace_back(1,
-                                    vertices.at(PV_index).z0(),
-                                    0,
-                                    vertices.at(PV_index).pt(),
-                                    0,
-                                    0,
-                                    0);
+    verticesEmulation_.emplace_back(1, vertices.at(PV_index).z0(), 0, vertices.at(PV_index).pt(), 0, 0, 0);
 
-  } // end of NNPVZ0Algorithm
-  
+  }  // end of NNPVZ0Algorithm
+
 }  // namespace l1tVertexFinder
