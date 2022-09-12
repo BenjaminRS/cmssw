@@ -132,13 +132,13 @@ namespace l1tVertexFinder {
                                        const std::vector<float>& bin_centers,
                                        const std::vector<unsigned int>& counts);
     /// Histogramming algorithm + cnn position
-    void NNVtx(tensorflow::Session* cnnTrkSesh = 0,
-               tensorflow::Session* cnnPVZ0Sesh = 0,
-               tensorflow::Session* AssociationSesh = 0);
+    void NNVtx(tensorflow::Session* cnnTrkSesh = nullptr,
+               tensorflow::Session* cnnPVZ0Sesh = nullptr,
+               tensorflow::Session* AssociationSesh = nullptr);
 
-    void NNVtxEmulation(tensorflow::Session* cnnTrkSesh = 0,
-                        tensorflow::Session* cnnPVZ0Sesh = 0,
-                        tensorflow::Session* AssociationSesh = 0);
+    void NNVtxEmulation(tensorflow::Session* cnnTrkSesh = nullptr,
+                        tensorflow::Session* cnnPVZ0Sesh = nullptr,
+                        tensorflow::Session* AssociationSesh = nullptr);
 
     /// DBSCAN algorithm
     void DBSCAN();

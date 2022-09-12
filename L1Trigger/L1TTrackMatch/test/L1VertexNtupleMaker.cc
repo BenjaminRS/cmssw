@@ -118,18 +118,16 @@ private:
   // Containers of parameters passed by python configuration file
   edm::ParameterSet config;
 
-  int MyProcess;       // 11/13/211 for single electrons/muons/pions, 6/15 for pions from ttbar/taus, 1 for inclusive
-  bool DebugMode;      // lots of debug printout statements
+  int MyProcess;   // 11/13/211 for single electrons/muons/pions, 6/15 for pions from ttbar/taus, 1 for inclusive
+  bool DebugMode;  // lots of debug printout statements
 
   edm::InputTag RecoVertexInputTag;
   edm::InputTag RecoVertexEmuInputTag;
   edm::InputTag GenVertexInputTag;
 
-
   edm::EDGetTokenT<l1t::VertexCollection> L1VertexToken_;
   edm::EDGetTokenT<l1t::VertexWordCollection> L1VertexEmuToken_;
   edm::EDGetTokenT<HepMCProduct> GenVertexToken_;
-
 
   //-----------------------------------------------------------------------------------------------
   // tree & branches for mini-ntuple
@@ -154,16 +152,14 @@ private:
 L1VertexNtupleMaker::L1VertexNtupleMaker(edm::ParameterSet const& iConfig) : config(iConfig) {
   MyProcess = iConfig.getParameter<int>("MyProcess");
   DebugMode = iConfig.getParameter<bool>("DebugMode");
- 
+
   RecoVertexInputTag = iConfig.getParameter<InputTag>("RecoVertexInputTag");
   RecoVertexEmuInputTag = iConfig.getParameter<InputTag>("RecoVertexEmuInputTag");
-  GenVertexInputTag   = iConfig.getParameter<InputTag >("GenVertexInputTag");
-
+  GenVertexInputTag = iConfig.getParameter<InputTag>("GenVertexInputTag");
 
   L1VertexToken_ = consumes<l1t::VertexCollection>(RecoVertexInputTag);
   L1VertexEmuToken_ = consumes<l1t::VertexWordCollection>(RecoVertexEmuInputTag);
   GenVertexToken_ = consumes<HepMCProduct>(GenVertexInputTag);
-
 
   usesResource(TFileService::kSharedResource);
 }
@@ -243,22 +239,22 @@ void L1VertexNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetu
 
   if (GenVertexHandle.isValid()) {
     const HepMC::GenEvent* MCEvt = GenVertexHandle->GetEvent();
-    for (HepMC::GenEvent::vertex_const_iterator ivertex =
-             MCEvt->vertices_begin();
-         ivertex != MCEvt->vertices_end(); ++ivertex) {
+    for (HepMC::GenEvent::vertex_const_iterator ivertex = MCEvt->vertices_begin(); ivertex != MCEvt->vertices_end();
+         ++ivertex) {
       bool hasParentVertex = false;
       // Loop over the parents looking to see if they are coming from a
       // production vertex
-      for (HepMC::GenVertex::particle_iterator iparent =
-               (*ivertex)->particles_begin(HepMC::parents);
-           iparent != (*ivertex)->particles_end(HepMC::parents); ++iparent)
+      for (HepMC::GenVertex::particle_iterator iparent = (*ivertex)->particles_begin(HepMC::parents);
+           iparent != (*ivertex)->particles_end(HepMC::parents);
+           ++iparent)
         if ((*iparent)->production_vertex()) {
           hasParentVertex = true;
           break;
         }
 
-          // Reject those vertices with parent vertices
-    if (hasParentVertex) continue;
+      // Reject those vertices with parent vertices
+      if (hasParentVertex)
+        continue;
       // Get the position of the vertex
       HepMC::FourVector pos = (*ivertex)->position();
       const double mm = 0.1;  // [mm] --> [cm]
@@ -277,8 +273,7 @@ void L1VertexNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetu
     edm::LogWarning("DataNotFound") << "\nWarning: L1PrimaryVertexHandle not found" << std::endl;
 
   if (L1PrimaryVertexEmuHandle.isValid()) {
-    for (vtxEmuIter = L1PrimaryVertexEmuHandle->begin(); vtxEmuIter != L1PrimaryVertexEmuHandle->end();
-         ++vtxEmuIter) {
+    for (vtxEmuIter = L1PrimaryVertexEmuHandle->begin(); vtxEmuIter != L1PrimaryVertexEmuHandle->end(); ++vtxEmuIter) {
       m_pv_L1reco_emu->push_back(vtxEmuIter->z0());
     }
   } else
@@ -288,7 +283,7 @@ void L1VertexNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetu
 }  // end of analyze()
 
 int L1VertexNtupleMaker::getSelectedTrackIndex(const L1TrackRef& trackRef,
-                                                    const edm::Handle<L1TrackRefCollection>& selectedTrackRefs) const {
+                                               const edm::Handle<L1TrackRefCollection>& selectedTrackRefs) const {
   auto it = std::find_if(selectedTrackRefs->begin(), selectedTrackRefs->end(), [&trackRef](L1TrackRef const& obj) {
     return obj == trackRef;
   });

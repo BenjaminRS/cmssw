@@ -68,7 +68,7 @@ VertexProducer::VertexProducer(const edm::ParameterSet& iConfig)
   }
 
   //--- Define EDM output to be written to file (if required)
-  if ((settings_.vx_algo() == Algorithm::fastHistoEmulation) | (settings_.vx_algo() == Algorithm::NNEmulation)) {
+  if ((settings_.vx_algo() == Algorithm::fastHistoEmulation) || (settings_.vx_algo() == Algorithm::NNEmulation)) {
     produces<l1t::VertexWordCollection>(outputCollectionName_ + "Emulation");
   } else {
     produces<l1t::VertexCollection>(outputCollectionName_);
