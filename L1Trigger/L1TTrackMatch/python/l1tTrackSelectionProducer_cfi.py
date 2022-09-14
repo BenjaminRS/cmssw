@@ -1,4 +1,7 @@
 import FWCore.ParameterSet.Config as cms
+from L1Trigger.VertexFinder.VertexProducer_cff import VertexProducer
+import os
+CMSSW_BASE = os.getenv('CMSSW_BASE')
 
 l1tTrackSelectionProducer = cms.EDProducer('L1TrackSelectionProducer',
   l1TracksInputTag = cms.InputTag("l1tGTTInputProducer","Level1TTTracksConverted"),
@@ -27,7 +30,7 @@ l1tTrackSelectionProducer = cms.EDProducer('L1TrackSelectionProducer',
 
   useAssociationNetwork = cms.bool(True), #Enable Association Network
   AssociationThreshold = cms.double(0.5), #Association Network threshold for PV tracks
-  AssociationGraph = cms.string("L1Trigger/L1TTrackMatch/data/Quantised_model_prune_iteration_9_associationModelgraph.pb"), #Location of Association Network model file
+  AssociationGraph = cms.string(CMSSW_BASE+"/src/L1Trigger/L1TTrackMatch/data/Quantised_model_prune_iteration_9_associationModelgraph.pb"), #Location of Association Network model file
   AssociationNetworkZ0binning = VertexProducer.VertexReconstruction.FH_HistogramParameters, #Z0 binning used for setting the input feature digitisation
   AssociationNetworkMaxPt = VertexProducer.VertexReconstruction.VxMaxTrackPt, #Digitised pT value at which values are truncated for input feature
   AssociationNetworkEtaBounds = cms.vdouble(0,1638,3276,4915,6554,8192,9830,11468,13107,16384,18022,19660,24576), #Eta bounds used to set z0 resolution input feature
