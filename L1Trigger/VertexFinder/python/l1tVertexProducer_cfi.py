@@ -14,7 +14,7 @@ l1tVertexProducer = cms.EDProducer('VertexProducer',
   # === Vertex Reconstruction configuration
   VertexReconstruction = cms.PSet(
         # Vertex Reconstruction Algorithm
-        Algorithm = cms.string("NN"),
+        Algorithm = cms.string("fastHisto"),
         # Vertex distance [cm]
         VertexDistance = cms.double(.15),
         # Assumed Vertex Resolution [cm]
@@ -76,9 +76,9 @@ l1tVertexProducer = cms.EDProducer('VertexProducer',
         VxMinNStubPS = cms.uint32(0),
         GenVxSmear = cms.double(0.2),
         # Track weight NN graph 
-        TrackWeightGraph = cms.string(CMSSW_BASE+"/src/L1Trigger/VertexFinder/data/z0Corr/Quantised_model_prune_iteration_9_weightModelgraph.pb"),
+        TrackWeightGraph = cms.string(CMSSW_BASE+"/src/L1Trigger/VertexFinder/data/Quantised_model_prune_iteration_9_weightModelgraph.pb"),
         # Track position NN graph
-        PVZ0Graph = cms.string(CMSSW_BASE+"/src/L1Trigger/VertexFinder/data/z0Corr/Quantised_model_prune_iteration_9_patternModelgraph.pb"),
+        PVZ0Graph = cms.string(CMSSW_BASE+"/src/L1Trigger/VertexFinder/data/Quantised_model_prune_iteration_9_patternModelgraph.pb"),
         # Adhoc correction to track z0 to correct for upstream asymmetry in tracks:
         apply_z0Correction = cms.bool(True),
         z0Correction = cms.double(0.03)
