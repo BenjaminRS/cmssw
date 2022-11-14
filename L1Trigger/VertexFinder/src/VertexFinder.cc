@@ -759,6 +759,8 @@ namespace l1tVertexFinder {
       }
       found.push_back(imax);
       vertices_.emplace_back(sums.at(imax));
+      std::cout << "sumPt = " << sums.at(imax).pt()
+            << "z0 = " << sums.at(imax).z0() << std::endl;
     }
     pv_index_ = 0;
 
@@ -803,10 +805,12 @@ namespace l1tVertexFinder {
 
     static constexpr unsigned int kTableSize =
         ((1 << HistogramBitWidths::kSumPtLinkSize) - 1) * HistogramBitWidths::kWindowSize;
+    static constexpr double kZ0Scale =
+        (TTTrack_TrackWord::stepZ0 *
+         (1 << (TrackBitWidths::kZ0Size - TrackBitWidths::kZ0MagSize)));  // scale = 1.27932032
 
     typedef ap_ufixed<TrackBitWidths::kPtSize, TrackBitWidths::kPtMagSize, AP_RND_CONV, AP_SAT> pt_t;
-    // Same size as TTTrack_TrackWord::z0_t, but now taking into account the sign bit (i.e. 2's complement)
-    typedef ap_int<TrackBitWidths::kZ0Size> z0_t;
+    typedef ap_fixed<TrackBitWidths::kZ0Size, TrackBitWidths::kZ0MagSize, AP_RND_CONV, AP_SAT> z0_t;
     // 7 bits chosen to represent values between [0,127]
     // This is the next highest power of 2 value to our chosen track pt saturation value (100)
     typedef ap_ufixed<TrackBitWidths::kReducedPrecisionPt, TrackBitWidths::kReducedPrecisionPt, AP_RND_INF, AP_SAT>
@@ -835,23 +839,16 @@ namespace l1tVertexFinder {
         inverse_t;
 
     auto track_quality_check = [&](const track_pt_fixed_t& pt) -> bool {
-      // Track quality cuts
+      // track quality cuts
       if (pt.to_double() < settings_->vx_TrackMinPt())
         return false;
       return true;
     };
 
     auto fetch_bin = [&](const z0_t& z0, int nbins) -> std::pair<histbin_t, bool> {
-      // Increase the the number of bits in the word to allow for additional dynamic range
-      ap_int<TrackBitWidths::kZ0Size + 1> z0_13 = z0;
-      // Add a number equal to half of the range in z0, meaning that the range is now [0, 2*z0_max]
-      ap_int<TrackBitWidths::kZ0Size + 1> absz0_13 = z0_13 + (1 << (TrackBitWidths::kZ0Size - 1));
-      // Shift the bits down to truncate the dynamic range to the most significant HistogramBitWidths::kBinFixedSize bits
-      ap_int<TrackBitWidths::kZ0Size + 1> absz0_13_reduced =
-          absz0_13 >> (TrackBitWidths::kZ0Size - HistogramBitWidths::kBinFixedSize);
-      // Put the relevant bits into the histbin_t container
-      histbin_t bin = absz0_13_reduced.range(HistogramBitWidths::kBinFixedSize - 1, 0);
-
+      histbin_t bin = (z0 * histbin_fixed_t(1.0 / settings_->vx_histogram_binwidth())) +
+                      histbin_t(std::floor(
+                          nbins / 2.));  // Rounding down (std::floor) taken care of by implicitly casting to ap_uint
       if (settings_->debug() > 2) {
         edm::LogInfo("VertexProducer")
             << "fastHistoEmulation::fetchBin() Checking the mapping from z0 to bin index ... \n"
@@ -895,7 +892,7 @@ namespace l1tVertexFinder {
       return inversion_table.at(index);
     };
 
-    auto bin_center = [&](zsliding_t iz, int nbins) -> l1t::VertexWord::vtxz0_t {
+    auto bin_center = [&](zsliding_t iz, int nbins) -> z0_t {
       zsliding_t z = iz - histbin_t(std::floor(nbins / 2.));
       std::unique_ptr<edm::LogInfo> log;
       if (settings_->debug() >= 1) {
@@ -906,9 +903,9 @@ namespace l1tVertexFinder {
              << "binwidth = " << zsliding_t(settings_->vx_histogram_binwidth()) << "\n"
              << "z = " << z << "\n"
              << "zsliding_t(z * zsliding_t(binwidth)) = " << std::setprecision(7)
-             << l1t::VertexWord::vtxz0_t(z * zsliding_t(settings_->vx_histogram_binwidth()));
+             << z0_t(z * zsliding_t(settings_->vx_histogram_binwidth()));
       }
-      return l1t::VertexWord::vtxz0_t(z * zsliding_t(settings_->vx_histogram_binwidth()));
+      return z0_t(z * zsliding_t(settings_->vx_histogram_binwidth()));
     };
 
     auto weighted_position = [&](histbin_t b_max,
@@ -986,7 +983,12 @@ namespace l1tVertexFinder {
       tkpt.V = track.getTTTrackPtr()->getTrackWord()(TTTrack_TrackWord::TrackBitLocations::kRinvMSB - 1,
                                                      TTTrack_TrackWord::TrackBitLocations::kRinvLSB);
       track_pt_fixed_t pt_tmp = tkpt;
-      z0_t tkZ0 = track.getTTTrackPtr()->getZ0Word();
+      //z0_t tkZ0 = track.getTTTrackPtr()->getZ0();
+      z0_t tkZ0 = 0;
+      tkZ0.V = track.getTTTrackPtr()->getTrackWord()(TTTrack_TrackWord::TrackBitLocations::kZ0MSB,
+                                                     TTTrack_TrackWord::TrackBitLocations::kZ0LSB);
+      ap_ufixed<32, 1> kZ0Scale_fixed = kZ0Scale;
+      tkZ0 *= kZ0Scale_fixed;
 
       if ((settings_->vx_DoQualityCuts() && track_quality_check(tkpt)) || (!settings_->vx_DoQualityCuts())) {
         //
@@ -1099,26 +1101,38 @@ namespace l1tVertexFinder {
     for (auto& track : fitTracks_) {
       // Quantised Network: Use values from L1GTTInputProducer pT, MVA1, eta
       auto& gttTrack = fitTracks_.at(counter);
-      int pTBit =
-          gttTrack.getTTTrackPtr()->getRinvBits() <= pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1)
-              ? gttTrack.getTTTrackPtr()->getRinvBits()
-              : gttTrack.getTTTrackPtr()->getRinvBits() -
-                    (pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1));
-      int etaBit =
-          gttTrack.getTTTrackPtr()->getTanlBits() < pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)-1)
-              ? gttTrack.getTTTrackPtr()->getTanlBits()
-              : pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)) - gttTrack.getTTTrackPtr()->getTanlBits();
 
-      inputTrkWeight.tensor<float, 2>()(0, 0) =
-          float(std::clamp(pTBit, 0, (int)settings_->vx_TrackMaxPt())) / ((int)settings_->vx_TrackMaxPt());
-      inputTrkWeight.tensor<float, 2>()(0, 1) = gttTrack.getTTTrackPtr()->getMVAQualityBits() /
-                                                pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kMVAQualitySize));
-      inputTrkWeight.tensor<float, 2>()(0, 2) = etaBit / pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize));
+      TTTrack_TrackWord::tanl_t etaEmulationBits = gttTrack.getTTTrackPtr()->getTanlWord();
+      ap_fixed<16, 3> etaEmulation;
+      etaEmulation.V = (etaEmulationBits.range());
+
+      ap_uint<14> ptEmulationBits = gttTrack.getTTTrackPtr()->getTrackWord()(
+          TTTrack_TrackWord::TrackBitLocations::kRinvMSB - 1, TTTrack_TrackWord::TrackBitLocations::kRinvLSB);
+      ap_ufixed<14, 9> ptEmulation;
+      ptEmulation.V = (ptEmulationBits.range());
+
+      ap_ufixed<22, 9> ptEmulation_rescale;
+      ptEmulation_rescale = ptEmulation.to_double();
+
+      ap_ufixed<22, 9> etaEmulation_rescale;
+      etaEmulation_rescale = abs(etaEmulation.to_double());
+
+      ap_ufixed<22, 9> MVAEmulation_rescale;
+      MVAEmulation_rescale = gttTrack.getTTTrackPtr()->getMVAQualityBits();
+
+      inputTrkWeight.tensor<float, 2>()(0, 0) = ptEmulation_rescale.to_double();
+      inputTrkWeight.tensor<float, 2>()(0, 1) = MVAEmulation_rescale.to_double();
+      inputTrkWeight.tensor<float, 2>()(0, 2) = etaEmulation_rescale.to_double();
+
       // CNN output: track weight
       std::vector<tensorflow::Tensor> outputTrkWeight;
       tensorflow::run(cnnTrkSesh, {{"weight:0", inputTrkWeight}}, {"Identity:0"}, &outputTrkWeight);
       // Set track weight pack into tracks:
-      track.setWeight((double)outputTrkWeight[0].tensor<float, 2>()(0, 0));
+
+      ap_ufixed<16, 5> NNOutput;
+      NNOutput = (double)outputTrkWeight[0].tensor<float, 2>()(0, 0) ;
+
+      track.setWeight(NNOutput.to_double());
 
       ++counter;
     }
@@ -1143,12 +1157,6 @@ namespace l1tVertexFinder {
       for (const L1Track& track : fitTracks_) {
         auto& gttTrack = fitTracks_.at(counter);
         double temp_z0 = gttTrack.getTTTrackPtr()->z0();
-        if (settings_->apply_z0Correction()) {
-          if (temp_z0 > 0.)
-            temp_z0 = temp_z0 + settings_->z0Correction();
-          else if (temp_z0 < 0.)
-            temp_z0 = temp_z0 - settings_->z0Correction();
-        }
 
         track_z = std::floor((temp_z0 + settings_->vx_histogram_max()) / binWidth);
 
@@ -1170,7 +1178,7 @@ namespace l1tVertexFinder {
     // Run PV Network:
     tensorflow::run(cnnPVZ0Sesh, {{"hist:0", inputPV}}, {"Identity:0"}, &outputPV);
     // Threshold needed due to rounding differences in internal CNN layer emulation versus firmware
-    const float histogrammingThreshold_ = 0.125;
+    const float histogrammingThreshold_ = 0.0;
     for (int i(0); i < settings_->vx_histogram_numbins(); ++i) {
       if (outputPV[0].tensor<float, 3>()(0, i, 0) >= histogrammingThreshold_) {
         nnOutput[i] = outputPV[0].tensor<float, 3>()(0, i, 0);
