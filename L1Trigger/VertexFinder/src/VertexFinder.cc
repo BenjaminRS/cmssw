@@ -1099,26 +1099,38 @@ namespace l1tVertexFinder {
     for (auto& track : fitTracks_) {
       // Quantised Network: Use values from L1GTTInputProducer pT, MVA1, eta
       auto& gttTrack = fitTracks_.at(counter);
-      int pTBit =
-          gttTrack.getTTTrackPtr()->getRinvBits() <= pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1)
-              ? gttTrack.getTTTrackPtr()->getRinvBits()
-              : gttTrack.getTTTrackPtr()->getRinvBits() -
-                    (pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1));
-      int etaBit =
-          gttTrack.getTTTrackPtr()->getTanlBits() < pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)-1)
-              ? gttTrack.getTTTrackPtr()->getTanlBits()
-              : pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)) - gttTrack.getTTTrackPtr()->getTanlBits();
 
-      inputTrkWeight.tensor<float, 2>()(0, 0) =
-          float(std::clamp(pTBit, 0, (int)settings_->vx_TrackMaxPt())) / ((int)settings_->vx_TrackMaxPt());
-      inputTrkWeight.tensor<float, 2>()(0, 1) = gttTrack.getTTTrackPtr()->getMVAQualityBits() /
-                                                pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kMVAQualitySize));
-      inputTrkWeight.tensor<float, 2>()(0, 2) = etaBit / pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize));
+      TTTrack_TrackWord::tanl_t etaEmulationBits = gttTrack.getTTTrackPtr()->getTanlWord();
+      ap_fixed<16, 3> etaEmulation;
+      etaEmulation.V = (etaEmulationBits.range());
+
+      ap_uint<14> ptEmulationBits = gttTrack.getTTTrackPtr()->getTrackWord()(
+          TTTrack_TrackWord::TrackBitLocations::kRinvMSB - 1, TTTrack_TrackWord::TrackBitLocations::kRinvLSB);
+      ap_ufixed<14, 9> ptEmulation;
+      ptEmulation.V = (ptEmulationBits.range());
+
+      ap_ufixed<22, 9> ptEmulation_rescale;
+      ptEmulation_rescale = ptEmulation.to_double();
+
+      ap_ufixed<22, 9> etaEmulation_rescale;
+      etaEmulation_rescale = abs(etaEmulation.to_double());
+
+      ap_ufixed<22, 9> MVAEmulation_rescale;
+      MVAEmulation_rescale = gttTrack.getTTTrackPtr()->getMVAQualityBits();
+
+      inputTrkWeight.tensor<float, 2>()(0, 0) = ptEmulation_rescale.to_double();
+      inputTrkWeight.tensor<float, 2>()(0, 1) = MVAEmulation_rescale.to_double();
+      inputTrkWeight.tensor<float, 2>()(0, 2) = etaEmulation_rescale.to_double();
+
       // CNN output: track weight
       std::vector<tensorflow::Tensor> outputTrkWeight;
       tensorflow::run(cnnTrkSesh, {{"weight:0", inputTrkWeight}}, {"Identity:0"}, &outputTrkWeight);
       // Set track weight pack into tracks:
-      track.setWeight((double)outputTrkWeight[0].tensor<float, 2>()(0, 0));
+
+      ap_ufixed<16, 5> NNOutput;
+      NNOutput = (double)outputTrkWeight[0].tensor<float, 2>()(0, 0) ;
+
+      track.setWeight(NNOutput.to_double());
 
       ++counter;
     }
@@ -1143,12 +1155,6 @@ namespace l1tVertexFinder {
       for (const L1Track& track : fitTracks_) {
         auto& gttTrack = fitTracks_.at(counter);
         double temp_z0 = gttTrack.getTTTrackPtr()->z0();
-        if (settings_->apply_z0Correction()) {
-          if (temp_z0 > 0.)
-            temp_z0 = temp_z0 + settings_->z0Correction();
-          else if (temp_z0 < 0.)
-            temp_z0 = temp_z0 - settings_->z0Correction();
-        }
 
         track_z = std::floor((temp_z0 + settings_->vx_histogram_max()) / binWidth);
 
@@ -1170,7 +1176,7 @@ namespace l1tVertexFinder {
     // Run PV Network:
     tensorflow::run(cnnPVZ0Sesh, {{"hist:0", inputPV}}, {"Identity:0"}, &outputPV);
     // Threshold needed due to rounding differences in internal CNN layer emulation versus firmware
-    const float histogrammingThreshold_ = 0.125;
+    const float histogrammingThreshold_ = 0.0;
     for (int i(0); i < settings_->vx_histogram_numbins(); ++i) {
       if (outputPV[0].tensor<float, 3>()(0, i, 0) >= histogrammingThreshold_) {
         nnOutput[i] = outputPV[0].tensor<float, 3>()(0, i, 0);

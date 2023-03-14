@@ -314,36 +314,47 @@ private:
       tensorflow::Tensor inputAssoc(tensorflow::DT_FLOAT, {1, 4});
       std::vector<tensorflow::Tensor> outputAssoc;
 
-      float etaBit = t.getTanlBits() < pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize - 1))
-                         ? t.getTanlBits()
-                         : pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kTanlSize)) - t.getTanlBits();
-      auto lower = std::lower_bound(eta_bins_.begin(), eta_bins_.end(), etaBit);
+      TTTrack_TrackWord::tanl_t etaEmulationBits = t.getTanlWord();
+      ap_fixed<16, 3> etaEmulation;
+      etaEmulation.V = (etaEmulationBits.range());
+
+      auto lower = std::lower_bound(eta_bins_.begin(), eta_bins_.end(), etaEmulation.to_double());
 
       //int resbin = (lower - res_bins_.begin());
       int resbin = std::distance(eta_bins_.begin(), lower);
       float binWidth = z0_binning_[2];
-
-      // Rescale factor used by NN to have features of same scale
-      float dZ_rescale = 8.;
       // calculate integer dZ from track z0 and vertex z0 (use floating point version and convert internally allowing use of both emulator and simulator vertex and track)
-      float dZ =
-          abs(floor(((t.getZ0() + z0_binning_[1]) / (binWidth))) - floor(((v.z0() + z0_binning_[1]) / (binWidth)))) /
-          dZ_rescale;
+      float dZ = abs(floor(((t.getZ0() + z0_binning_[1]) / (binWidth))) - floor(((v.z0() + z0_binning_[1]) / (binWidth))));
 
-      int pTBit = t.getRinvBits() <= pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1)
-                      ? t.getRinvBits()
-                      : t.getRinvBits() - (pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kRinvSize)-1));
+      ap_uint<14> ptEmulationBits = t.getTrackWord()(
+          TTTrack_TrackWord::TrackBitLocations::kRinvMSB - 1, TTTrack_TrackWord::TrackBitLocations::kRinvLSB);
+      ap_ufixed<14, 9> ptEmulation;
+      ptEmulation.V = (ptEmulationBits.range());
 
-      inputAssoc.tensor<float, 2>()(0, 0) = float(std::clamp(pTBit, 0, (int)max_pt_)) / max_pt_;
-      inputAssoc.tensor<float, 2>()(0, 1) =
-          t.getMVAQualityBits() / pow(2, (int)(TTTrack_TrackWord::TrackBitWidths::kMVAQualitySize));
-      inputAssoc.tensor<float, 2>()(0, 2) = res_bins_[resbin];
-      inputAssoc.tensor<float, 2>()(0, 3) = dZ;
+      ap_ufixed<22, 9> ptEmulation_rescale;
+      ptEmulation_rescale = ptEmulation.to_double();
+
+      ap_ufixed<22, 9> resBinEmulation_rescale;
+      resBinEmulation_rescale = res_bins_[resbin];
+
+      ap_ufixed<22, 9> MVAEmulation_rescale;
+      MVAEmulation_rescale = t.getMVAQualityBits();
+
+      ap_ufixed<22, 9> dZEmulation_rescale;
+      dZEmulation_rescale = dZ;
+
+      inputAssoc.tensor<float, 2>()(0, 0) = ptEmulation_rescale.to_double();
+      inputAssoc.tensor<float, 2>()(0, 1) = MVAEmulation_rescale.to_double();
+      inputAssoc.tensor<float, 2>()(0, 2) = resBinEmulation_rescale.to_double();
+      inputAssoc.tensor<float, 2>()(0, 3) = dZEmulation_rescale.to_double();
 
       // Run Association Network:
       tensorflow::run(AssociationSesh_, {{"assoc:0", inputAssoc}}, {"Identity:0"}, &outputAssoc);
 
-      return outputAssoc[0].tensor<float, 2>()(0, 0) >= AssociationThreshold_;
+      ap_ufixed<16, 5> NNOutput;
+      NNOutput = (double)outputAssoc[0].tensor<float, 2>()(0, 0) ;
+
+      return  NNOutput.to_double() >= AssociationThreshold_;
     }
 
   private:
