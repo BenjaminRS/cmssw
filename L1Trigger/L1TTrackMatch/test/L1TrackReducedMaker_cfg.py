@@ -21,8 +21,8 @@ process = cms.Process(L1TRK_INST)
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
-process.load('Configuration.Geometry.GeometryExtended2026D77Reco_cff')
-process.load('Configuration.Geometry.GeometryExtended2026D77_cff')
+process.load('Configuration.Geometry.GeometryExtended2026D88Reco_cff')
+process.load('Configuration.Geometry.GeometryExtended2026D88_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
@@ -81,17 +81,16 @@ process.TTClusterStubTruth = cms.Path(process.TrackTriggerAssociatorClustersStub
 
 
 # DTC emulation
-process.load('L1Trigger.TrackerDTC.ProducerES_cff')
 process.load('L1Trigger.TrackerDTC.ProducerED_cff')
 process.dtc = cms.Path(process.TrackerDTCProducer)#*process.TrackerDTCAnalyzer)
 
 process.load("L1Trigger.TrackFindingTracklet.L1HybridEmulationTracks_cff")
-process.load("L1Trigger.L1TTrackMatch.L1GTTInputProducer_cfi")
+process.load("L1Trigger.L1TTrackMatch.l1tGTTInputProducer_cfi")
 
 
-process.TTTracksEmu = cms.Path(process.L1HybridTracks)
-process.TTTracksEmuWithTruth = cms.Path(process.L1HybridTracksWithAssociators)
-process.pL1GTTInput = cms.Path(process.L1GTTInputProducer)
+process.TTTracksEmu = cms.Path(process.L1THybridTracks)
+process.TTTracksEmuWithTruth = cms.Path(process.L1THybridTracksWithAssociators)
+process.pL1GTTInput = cms.Path(process.l1tGTTInputProducer)
 
 ############################################################
 # Define the track ntuple process, MyProcess is the (unsigned) PDGID corresponding to the process which is run
@@ -114,9 +113,9 @@ process.L1TrackNtuple = cms.EDAnalyzer('L1TrackReducedMaker',
         TP_minPt = cms.double(2.0),       # only save TPs with pt > X GeV
         TP_maxEta = cms.double(2.5),      # only save TPs with |eta| < X
         TP_maxZ0 = cms.double(15.0),      # only save TPs with |z0| < X cm
-        L1TrackInputTag = cms.InputTag("TTTracksFromTrackletEmulation", "Level1TTTracks"),                                                      # TTTracks, prompt
+        L1TrackInputTag = cms.InputTag("l1tTTTracksFromTrackletEmulation", "Level1TTTracks"),                                                      # TTTracks, prompt
         MCTruthTrackInputTag = cms.InputTag("TTTrackAssociatorFromPixelDigis", "Level1TTTracks"),                                               # MCTruth track, prompt
-        L1GTTTrackInputTag = cms.InputTag("L1GTTInputProducer","Level1TTTracksConverted"),                                                      # TTTracks, prompt, GTT converted                      # TTTracks, prompt, emulation, selected
+        L1GTTTrackInputTag = cms.InputTag("l1tGTTInputProducer","Level1TTTracksConverted"),                                                      # TTTracks, prompt, GTT converted
         L1StubInputTag = cms.InputTag("TTStubsFromPhase2TrackerDigis","StubAccepted"),
         MCTruthClusterInputTag = cms.InputTag("TTClusterAssociatorFromPixelDigis", "ClusterAccepted"),
         MCTruthStubInputTag = cms.InputTag("TTStubAssociatorFromPixelDigis", "StubAccepted"),
