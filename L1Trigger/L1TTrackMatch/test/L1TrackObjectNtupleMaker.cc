@@ -29,6 +29,7 @@
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingVertex.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
+#include "SimDataFormats/Vertex/interface/SimVertex.h"
 #include "SimTracker/TrackTriggerAssociation/interface/TTClusterAssociationMap.h"
 #include "SimTracker/TrackTriggerAssociation/interface/TTStubAssociationMap.h"
 #include "SimTracker/TrackTriggerAssociation/interface/TTTrackAssociationMap.h"
@@ -144,6 +145,7 @@ private:
 
   edm::InputTag L1TrackInputTag;                           // L1 track collection
   edm::InputTag MCTruthTrackInputTag;                      // MC truth collection
+  edm::InputTag SimVertexInputTag;                         // MC truth vertex collection
   edm::InputTag L1TrackGTTInputTag;                        // L1 track collection
   edm::InputTag L1TrackSelectedInputTag;                   // L1 track collection
   edm::InputTag L1TrackSelectedEmulationInputTag;          // L1 track collection
@@ -198,6 +200,7 @@ private:
   edm::EDGetTokenT<std::vector<TrackingVertex>> TrackingVertexToken_;
   edm::EDGetTokenT<std::vector<reco::GenJet>> GenJetToken_;
   edm::EDGetTokenT<std::vector<reco::GenParticle>> GenParticleToken_;
+  edm::EDGetTokenT<std::vector<SimVertex>> SimVertexToken_;
   edm::EDGetTokenT<l1t::VertexCollection> L1VertexToken_;
   edm::EDGetTokenT<l1t::VertexWordCollection> L1VertexEmuToken_;
 
@@ -421,6 +424,11 @@ private:
   std::vector<float>* m_trkfastjetExt_tp_sumpt;
   std::vector<float>* m_trkfastjetExt_truetp_sumpt;
 
+  std::vector<float>* m_genjet_p;
+  std::vector<float>* m_genjet_phi;
+  std::vector<float>* m_genjet_eta;
+  std::vector<float>* m_genjet_pt;
+
   std::vector<float>* m_trkjet_vz;
   std::vector<float>* m_trkjet_p;
   std::vector<float>* m_trkjet_phi;
@@ -491,6 +499,7 @@ L1TrackObjectNtupleMaker::L1TrackObjectNtupleMaker(edm::ParameterSet const& iCon
   RecoVertexInputTag = iConfig.getParameter<InputTag>("RecoVertexInputTag");
   RecoVertexEmuInputTag = iConfig.getParameter<InputTag>("RecoVertexEmuInputTag");
   GenParticleInputTag = iConfig.getParameter<InputTag>("GenParticleInputTag");
+  SimVertexInputTag   = iConfig.getParameter<InputTag >("SimVertexInputTag");
 
   if (Displaced == "Prompt" || Displaced == "Both") {
     L1TrackInputTag = iConfig.getParameter<edm::InputTag>("L1TrackInputTag");
@@ -557,6 +566,7 @@ L1TrackObjectNtupleMaker::L1TrackObjectNtupleMaker(edm::ParameterSet const& iCon
   TrackingVertexToken_ = consumes<std::vector<TrackingVertex>>(TrackingVertexInputTag);
   GenJetToken_ = consumes<std::vector<reco::GenJet>>(GenJetInputTag);
   GenParticleToken_ = consumes<std::vector<reco::GenParticle>>(GenParticleInputTag);
+  SimVertexToken_ = consumes<std::vector<SimVertex>>(SimVertexInputTag);
   L1VertexToken_ = consumes<l1t::VertexCollection>(RecoVertexInputTag);
   L1VertexEmuToken_ = consumes<l1t::VertexWordCollection>(RecoVertexEmuInputTag);
   tTopoToken_ = esConsumes<TrackerTopology, TrackerTopologyRcd>(edm::ESInputTag("", ""));
@@ -735,6 +745,11 @@ void L1TrackObjectNtupleMaker::beginJob() {
   m_pv_L1reco_sum_emu = new std::vector<float>;
   m_pv_MC = new std::vector<float>;
   m_MC_lep = new std::vector<int>;
+
+  m_genjet_eta = new std::vector<float>;
+  m_genjet_phi = new std::vector<float>;
+  m_genjet_p = new std::vector<float>;
+  m_genjet_pt = new std::vector<float>;
 
   m_trkjet_eta = new std::vector<float>;
   m_trkjet_vz = new std::vector<float>;
@@ -947,6 +962,10 @@ void L1TrackObjectNtupleMaker::beginJob() {
   eventTree->Branch("gen_z0", &m_gen_z0);
 
   if (SaveTrackJets) {
+    eventTree->Branch("genjet_eta", &m_genjet_eta);
+    eventTree->Branch("genjet_p", &m_genjet_p);
+    eventTree->Branch("genjet_pt", &m_genjet_pt);
+    eventTree->Branch("genjet_phi", &m_genjet_phi);
     if (Displaced == "Prompt" || Displaced == "Both") {
       eventTree->Branch("trkfastjet_eta", &m_trkfastjet_eta);
       eventTree->Branch("trkfastjet_vz", &m_trkfastjet_vz);
@@ -1189,6 +1208,10 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
   }
 
   if (SaveTrackJets) {
+    m_genjet_eta->clear();
+    m_genjet_pt->clear();
+    m_genjet_phi->clear();
+    m_genjet_p->clear();
     if (Displaced == "Prompt" || Displaced == "Both") {
       m_trkjet_eta->clear();
       m_trkjet_pt->clear();
@@ -1279,6 +1302,10 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
   //Gen particles
   edm::Handle<std::vector<reco::GenParticle>> GenParticleHandle;
   iEvent.getByToken(GenParticleToken_, GenParticleHandle);
+  edm::Handle<std::vector<SimVertex>> SimVertexHandle;
+  iEvent.getByToken(SimVertexToken_, SimVertexHandle);
+  edm::Handle<std::vector<reco::GenJet>> GenJetHandle;
+  iEvent.getByToken(GenJetToken_, GenJetHandle);
 
   //Vertex
   edm::Handle<l1t::VertexCollection> L1PrimaryVertexHandle;
@@ -1378,9 +1405,16 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
     }
 
     trueMET = sqrt(trueMETx * trueMETx + trueMETy * trueMETy);
-    m_pv_MC->push_back(zvtx_gen);
+    // m_pv_MC->push_back(zvtx_gen);
   } else {
     edm::LogWarning("DataNotFound") << "\nWarning: GenParticleHandle not found in the event" << std::endl;
+  }
+
+  if (SimVertexHandle.isValid()) {
+    const SimVertex simPVh = *(SimVertexHandle->begin());
+    m_pv_MC->push_back(simPVh.position().z());
+  } else {
+    edm::LogWarning("DataNotFound") << "\nWarning: SimVertexHandle not found in the event" << std::endl;
   }
 
   // ----------------------------------------------------------------------------------------------
@@ -2448,6 +2482,14 @@ void L1TrackObjectNtupleMaker::analyze(const edm::Event& iEvent, const edm::Even
   }
 
   if (SaveTrackJets) {
+    if (GenJetHandle.isValid()) {
+      for (auto jetIter = GenJetHandle->begin(); jetIter != GenJetHandle->end(); ++jetIter) {
+        m_genjet_phi->push_back(jetIter->phi());
+        m_genjet_eta->push_back(jetIter->eta());
+        m_genjet_pt->push_back(jetIter->pt());
+        m_genjet_p->push_back(jetIter->p());
+      }
+    }
     if (TrackFastJetsHandle.isValid() && (Displaced == "Prompt" || Displaced == "Both")) {
       for (jetIter = TrackFastJetsHandle->begin(); jetIter != TrackFastJetsHandle->end(); ++jetIter) {
         m_trkfastjet_vz->push_back(jetIter->jetVtx());
