@@ -64,6 +64,7 @@
 #include "Geometry/Records/interface/TrackerTopologyRcd.h"
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 #include "L1Trigger/DemonstratorTools/interface/codecs/tracks.h"
+#include "FWCore/ParameterSet/interface/FileInPath.h"
 
 //
 // class declaration
@@ -282,7 +283,7 @@ private:
   const unsigned int fwNTrackSetsTVA_;
 
   //NNVtx:
-  std::string associationGraphPath_;
+  edm::FileInPath associationGraphPath_;
   const double associationThreshold_;
   bool useAssociationNetwork_;
   tensorflow::GraphDef* associationGraph_;
@@ -321,7 +322,7 @@ L1TrackVertexAssociationProducer::L1TrackVertexAssociationProducer(const edm::Pa
       deltaZMax_(cutSet_.getParameter<std::vector<double>>("deltaZMax")),
       useDisplacedTracksDeltaZOverride_(iConfig.getParameter<double>("useDisplacedTracksDeltaZOverride")),
       fwNTrackSetsTVA_(iConfig.getParameter<unsigned int>("fwNTrackSetsTVA")),
-      associationGraphPath_(iConfig.getParameter<std::string>("associationGraph")),
+      associationGraphPath_(useAssociationNetwork_ ? iConfig.getParameter<edm::FileInPath>("associationGraph") : edm::FileInPath("")),
       associationThreshold_(iConfig.getParameter<double>("associationThreshold")),
       useAssociationNetwork_(iConfig.getParameter<bool>("useAssociationNetwork")),
       associationNetworkZ0binning_(iConfig.getParameter<std::vector<double>>("associationNetworkZ0binning")),
@@ -329,7 +330,7 @@ L1TrackVertexAssociationProducer::L1TrackVertexAssociationProducer(const edm::Pa
       associationNetworkZ0ResBins_(iConfig.getParameter<std::vector<double>>("associationNetworkZ0ResBins")),
       debug_(iConfig.getParameter<int>("debug")) {
   if (useAssociationNetwork_) {
-    associationGraph_ = tensorflow::loadGraphDef(associationGraphPath_);
+    associationGraph_ = tensorflow::loadGraphDef(associationGraphPath_.fullPath());
     associationSesh_ = tensorflow::createSession(associationGraph_);
   }
   // Confirm the the configuration makes sense
@@ -583,42 +584,45 @@ void L1TrackVertexAssociationProducer::produce(edm::StreamID, edm::Event& iEvent
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void L1TrackVertexAssociationProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
-  desc.add<edm::InputTag>("l1TracksInputTag", edm::InputTag("l1tGTTInputProducer", "Level1TTTracksConverted"));
-  desc.add<edm::InputTag>("l1SelectedTracksInputTag",
-                          edm::InputTag("l1tTrackSelectionProducer", "Level1TTTracksSelected"));
-  desc.add<edm::InputTag>("l1SelectedTracksEmulationInputTag",
-                          edm::InputTag("l1tTrackSelectionProducer", "Level1TTTracksSelectedEmulation"));
-  desc.add<edm::InputTag>("l1VerticesInputTag", edm::InputTag("l1tVertexFinder", "L1Vertices"));
-  desc.add<edm::InputTag>("l1VerticesEmulationInputTag",
-                          edm::InputTag("l1tVertexFinderEmulator", "L1VerticesEmulation"));
-  desc.add<std::string>("outputCollectionName", "Level1TTTracksSelectedAssociated");
-  {
-    edm::ParameterSetDescription descCutSet;
-    descCutSet.add<std::vector<double>>("deltaZMaxEtaBounds", {0.0, 0.7, 1.0, 1.2, 1.6, 2.0, 2.4})
-        ->setComment("these values define the bin boundaries in |eta|");
-    descCutSet.add<std::vector<double>>("deltaZMax", {0.37, 0.50, 0.60, 0.75, 1.00, 1.60})
-        ->setComment(
-            "delta z must be less than these values, there will be one less value here than in deltaZMaxEtaBounds, "
-            "[cm]");
-    desc.add<edm::ParameterSetDescription>("cutSet", descCutSet);
-  }
-  desc.add<double>("useDisplacedTracksDeltaZOverride", -1.0)
-      ->setComment("override the deltaZ cut value for displaced tracks");
-  desc.add<bool>("processSimulatedTracks", true)
-      ->setComment("return selected tracks after cutting on the floating point values");
-  desc.add<bool>("processEmulatedTracks", true)
-      ->setComment("return selected tracks after cutting on the bitwise emulated values");
-  desc.add<unsigned int>("fwNTrackSetsTVA", 94)->setComment("firmware limit on processed tracks per GTT input link");
-  desc.add<bool>("useAssociationNetwork", false)->setComment("Enable Association Network");
-  desc.add<double>("associationThreshold", 0)->setComment("Association Network threshold for PV tracks");
-  desc.add<std::string>("associationGraph", "")->setComment("Location of Association Network model file");
-  desc.add<std::vector<double>>("associationNetworkZ0binning", {})
-      ->setComment("z0 binning used for setting the input feature digitisation");
-  desc.add<std::vector<double>>("associationNetworkEtaBounds", {})
-      ->setComment("Eta bounds used to set z0 resolution input feature");
-  desc.add<std::vector<double>>("associationNetworkZ0ResBins", {})->setComment("z0 resolution input feature bins");
+  desc.setUnknown(); //This switches off the validation as we would otherwise get the following error:
+  //// Exception Message: EntryError can not convert representation of associationGraph: V001  0 to value of type FileInPath
 
-  desc.add<int>("debug", 0)->setComment("Verbosity levels: 0, 1, 2, 3");
+  // desc.add<edm::InputTag>("l1TracksInputTag", edm::InputTag("l1tGTTInputProducer", "Level1TTTracksConverted"));
+  // desc.add<edm::InputTag>("l1SelectedTracksInputTag",
+  //                         edm::InputTag("l1tTrackSelectionProducer", "Level1TTTracksSelected"));
+  // desc.add<edm::InputTag>("l1SelectedTracksEmulationInputTag",
+  //                         edm::InputTag("l1tTrackSelectionProducer", "Level1TTTracksSelectedEmulation"));
+  // desc.add<edm::InputTag>("l1VerticesInputTag", edm::InputTag("l1tVertexFinder", "L1Vertices"));
+  // desc.add<edm::InputTag>("l1VerticesEmulationInputTag",
+  //                         edm::InputTag("l1tVertexFinderEmulator", "L1VerticesEmulation"));
+  // desc.add<std::string>("outputCollectionName", "Level1TTTracksSelectedAssociated");
+  // {
+  //   edm::ParameterSetDescription descCutSet;
+  //   descCutSet.add<std::vector<double>>("deltaZMaxEtaBounds", {0.0, 0.7, 1.0, 1.2, 1.6, 2.0, 2.4})
+  //       ->setComment("these values define the bin boundaries in |eta|");
+  //   descCutSet.add<std::vector<double>>("deltaZMax", {0.37, 0.50, 0.60, 0.75, 1.00, 1.60})
+  //       ->setComment(
+  //           "delta z must be less than these values, there will be one less value here than in deltaZMaxEtaBounds, "
+  //           "[cm]");
+  //   desc.add<edm::ParameterSetDescription>("cutSet", descCutSet);
+  // }
+  // desc.add<double>("useDisplacedTracksDeltaZOverride", -1.0)
+  //     ->setComment("override the deltaZ cut value for displaced tracks");
+  // desc.add<bool>("processSimulatedTracks", true)
+  //     ->setComment("return selected tracks after cutting on the floating point values");
+  // desc.add<bool>("processEmulatedTracks", true)
+  //     ->setComment("return selected tracks after cutting on the bitwise emulated values");
+  // desc.add<unsigned int>("fwNTrackSetsTVA", 94)->setComment("firmware limit on processed tracks per GTT input link");
+  // desc.add<bool>("useAssociationNetwork", false)->setComment("Enable Association Network");
+  // desc.add<double>("associationThreshold", 0)->setComment("Association Network threshold for PV tracks");
+  // desc.add<edm::FileInPath>("associationGraph", {})->setComment("Location of Association Network model file");
+  // desc.add<std::vector<double>>("associationNetworkZ0binning", {})
+  //     ->setComment("z0 binning used for setting the input feature digitisation");
+  // desc.add<std::vector<double>>("associationNetworkEtaBounds", {})
+  //     ->setComment("Eta bounds used to set z0 resolution input feature");
+  // desc.add<std::vector<double>>("associationNetworkZ0ResBins", {})->setComment("z0 resolution input feature bins");
+
+  // desc.add<int>("debug", 0)->setComment("Verbosity levels: 0, 1, 2, 3");
   descriptions.addWithDefaultLabel(desc);
 }
 
