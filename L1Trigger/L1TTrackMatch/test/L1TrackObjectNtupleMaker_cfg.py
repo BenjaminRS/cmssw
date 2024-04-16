@@ -43,7 +43,7 @@ process.MessageLogger.cerr.INFO.limit = cms.untracked.int32(0) # default: 0
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10))
 
 readFiles = cms.untracked.vstring(
-                                  '/store/relval/CMSSW_13_0_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/130X_mcRun4_realistic_v2_2026D95noPU-v1/00000/16f6615d-f98c-475f-ad33-0e89934b6c7f.root'
+                                  '/store/relval/CMSSW_13_1_0/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/131X_mcRun4_realistic_v5_2026D95noPU_PDMVRELVALS194-v1/2590000/0c062fcc-a0b9-4050-bca9-bc3141f0190c.root'
 )
 secFiles = cms.untracked.vstring()
 
@@ -59,7 +59,7 @@ process.Timing = cms.Service("Timing",
   useJobReport = cms.untracked.bool(True)
 )
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string('GTTObjects_ttbar200PU_v2p2.root'), closeFileFast = cms.untracked.bool(True))
+process.TFileService = cms.Service("TFileService", fileName = cms.string('GTTObjects_RelVal1310.root'), closeFileFast = cms.untracked.bool(True))
 
 
 ############################################################
@@ -244,6 +244,7 @@ process.L1TrackNtuple = cms.EDAnalyzer('L1TrackObjectNtupleMaker',
         TrackMHTExtendedInputTag = cms.InputTag("l1tTrackerHTMissExtended","L1TrackerHTMissExtended"),
         TrackMHTEmuInputTag = cms.InputTag("l1tTrackerEmuHTMiss",process.l1tTrackerEmuHTMiss.L1MHTCollectionName.value()),
         TrackMHTEmuExtendedInputTag = cms.InputTag("l1tTrackerEmuHTMissExtended",process.l1tTrackerEmuHTMissExtended.L1MHTCollectionName.value()),
+        SimVertexInputTag = cms.InputTag("g4SimHits",""),
         GenParticleInputTag = cms.InputTag("genParticles",""),
         RecoVertexInputTag=cms.InputTag("l1tVertexFinder", "L1Vertices"),
         RecoVertexEmuInputTag=cms.InputTag("l1tVertexFinderEmulator", "L1VerticesEmulation"),
