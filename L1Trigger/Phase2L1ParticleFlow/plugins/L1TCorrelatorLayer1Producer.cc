@@ -346,7 +346,7 @@ void L1TCorrelatorLayer1Producer::fillDescriptions(edm::ConfigurationDescription
   edm::ParameterSetDescription desc;
   // Inputs and cuts
   desc.add<edm::InputTag>("tracks", edm::InputTag(""));
-  desc.add<edm::InputTag>("muons", edm::InputTag("l1tSAMuonsGmt", "promptSAMuons"));
+  desc.add<edm::InputTag>("muons", edm::InputTag("l1tSAMuonsGmt", "prompt"));
   desc.add<std::vector<edm::InputTag>>("emClusters", std::vector<edm::InputTag>());
   desc.add<std::vector<edm::InputTag>>("hadClusters", std::vector<edm::InputTag>());
   desc.add<edm::InputTag>("vtxCollection", edm::InputTag("l1tVertexFinderEmulator", "L1VerticesEmulation"));
@@ -1182,6 +1182,7 @@ void L1TCorrelatorLayer1Producer::putEgObjects(edm::Event &iEvent,
       tkele.setEgBinaryWord(egele.pack(), l1t::TkElectron::HWEncoding::CT);
       tkele.setIdScore(egele.floatIDScore());
       tkele.setCharge(egele.intCharge());
+      tkele.setTrkzVtx(egele.floatZ0());
       tkeles->push_back(tkele);
       nele_obj.push_back(tkeles->size() - 1);
     }

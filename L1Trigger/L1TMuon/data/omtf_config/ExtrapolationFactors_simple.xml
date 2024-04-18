@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ExtrapolationFactors multiplier="128">
+  <Lut RefLayer="0" Layer="0" KeyType="none"/>
+  <Lut RefLayer="0" Layer="1" KeyType="none"/>
+  <Lut RefLayer="0" Layer="2" KeyType="none">
+    <LutVal key="0" value="34"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="3" KeyType="none"/>
+  <Lut RefLayer="0" Layer="4" KeyType="none">
+    <LutVal key="0" value="65"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="5" KeyType="none"/>
+  <Lut RefLayer="0" Layer="6" KeyType="none">
+    <LutVal key="0" value="60"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="7" KeyType="none">
+    <LutVal key="0" value="60"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="8" KeyType="none">
+    <LutVal key="0" value="65"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="9" KeyType="none">
+    <LutVal key="0" value="13"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="10" KeyType="none">
+    <LutVal key="0" value="-9"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="11" KeyType="none">
+    <LutVal key="0" value="8"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="12" KeyType="none">
+    <LutVal key="0" value="28"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="13" KeyType="none">
+    <LutVal key="0" value="40"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="14" KeyType="none">
+    <LutVal key="0" value="61"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="15" KeyType="none">
+    <LutVal key="0" value="60"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="16" KeyType="none">
+    <LutVal key="0" value="42"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="17" KeyType="none">
+    <LutVal key="0" value="62"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="0" KeyType="none">
+    <LutVal key="0" value="-41"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="1" KeyType="none"/>
+  <Lut RefLayer="1" Layer="2" KeyType="none"/>
+  <Lut RefLayer="1" Layer="3" KeyType="none"/>
+  <Lut RefLayer="1" Layer="4" KeyType="none">
+    <LutVal key="0" value="37"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="5" KeyType="none"/>
+  <Lut RefLayer="1" Layer="6" KeyType="none">
+    <LutVal key="0" value="31"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="7" KeyType="none">
+    <LutVal key="0" value="43"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="8" KeyType="none">
+    <LutVal key="0" value="53"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="9" KeyType="none"/>
+  <Lut RefLayer="1" Layer="10" KeyType="none">
+    <LutVal key="0" value="-51"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="11" KeyType="none">
+    <LutVal key="0" value="-31"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="12" KeyType="none">
+    <LutVal key="0" value="-8"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="13" KeyType="none">
+    <LutVal key="0" value="7"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="14" KeyType="none">
+    <LutVal key="0" value="32"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="15" KeyType="none">
+    <LutVal key="0" value="31"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="16" KeyType="none">
+    <LutVal key="0" value="50"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="17" KeyType="none">
+    <LutVal key="0" value="50"/>
+  </Lut>
+</ExtrapolationFactors>

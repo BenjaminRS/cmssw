@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ExtrapolationFactors multiplier="512">
+  <Lut RefLayer="0" Layer="0" KeyType="quality"/>
+  <Lut RefLayer="0" Layer="1" KeyType="none"/>
+  <Lut RefLayer="0" Layer="2" KeyType="quality">
+    <LutVal key="2" value="60"/>
+    <LutVal key="3" value="76"/>
+    <LutVal key="4" value="68"/>
+    <LutVal key="5" value="68"/>
+    <LutVal key="6" value="68"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="3" KeyType="none"/>
+  <Lut RefLayer="0" Layer="4" KeyType="quality">
+    <LutVal key="2" value="124"/>
+    <LutVal key="3" value="136"/>
+    <LutVal key="4" value="130"/>
+    <LutVal key="5" value="130"/>
+    <LutVal key="6" value="130"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="5" KeyType="none"/>
+  <Lut RefLayer="0" Layer="6" KeyType="eta">
+    <LutVal key="83" value="153"/>
+    <LutVal key="84" value="149"/>
+    <LutVal key="85" value="145"/>
+    <LutVal key="86" value="140"/>
+    <LutVal key="87" value="135"/>
+    <LutVal key="88" value="131"/>
+    <LutVal key="89" value="128"/>
+    <LutVal key="90" value="123"/>
+    <LutVal key="91" value="119"/>
+    <LutVal key="92" value="115"/>
+    <LutVal key="93" value="109"/>
+    <LutVal key="94" value="105"/>
+    <LutVal key="95" value="101"/>
+    <LutVal key="96" value="96"/>
+    <LutVal key="97" value="91"/>
+    <LutVal key="98" value="87"/>
+    <LutVal key="99" value="82"/>
+    <LutVal key="100" value="77"/>
+    <LutVal key="101" value="71"/>
+    <LutVal key="102" value="68"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="7" KeyType="eta">
+    <LutVal key="93" value="156"/>
+    <LutVal key="94" value="152"/>
+    <LutVal key="95" value="151"/>
+    <LutVal key="96" value="150"/>
+    <LutVal key="97" value="146"/>
+    <LutVal key="98" value="141"/>
+    <LutVal key="99" value="139"/>
+    <LutVal key="100" value="132"/>
+    <LutVal key="101" value="129"/>
+    <LutVal key="102" value="126"/>
+    <LutVal key="103" value="119"/>
+    <LutVal key="104" value="119"/>
+    <LutVal key="105" value="111"/>
+    <LutVal key="106" value="111"/>
+    <LutVal key="107" value="103"/>
+    <LutVal key="108" value="102"/>
+    <LutVal key="109" value="94"/>
+    <LutVal key="110" value="93"/>
+    <LutVal key="111" value="87"/>
+    <LutVal key="112" value="83"/>
+    <LutVal key="113" value="78"/>
+    <LutVal key="114" value="73"/>
+    <LutVal key="115" value="71"/>
+    <LutVal key="116" value="64"/>
+    <LutVal key="117" value="61"/>
+    <LutVal key="118" value="61"/>
+    <LutVal key="119" value="56"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="8" KeyType="eta">
+    <LutVal key="102" value="158"/>
+    <LutVal key="103" value="155"/>
+    <LutVal key="104" value="153"/>
+    <LutVal key="105" value="150"/>
+    <LutVal key="106" value="148"/>
+    <LutVal key="107" value="143"/>
+    <LutVal key="108" value="138"/>
+    <LutVal key="109" value="137"/>
+    <LutVal key="110" value="131"/>
+    <LutVal key="111" value="127"/>
+    <LutVal key="112" value="124"/>
+    <LutVal key="113" value="120"/>
+    <LutVal key="114" value="116"/>
+    <LutVal key="115" value="112"/>
+    <LutVal key="116" value="108"/>
+    <LutVal key="117" value="105"/>
+    <LutVal key="118" value="100"/>
+    <LutVal key="119" value="94"/>
+    <LutVal key="120" value="93"/>
+    <LutVal key="121" value="87"/>
+    <LutVal key="122" value="85"/>
+    <LutVal key="123" value="80"/>
+    <LutVal key="124" value="74"/>
+    <LutVal key="125" value="69"/>
+    <LutVal key="126" value="63"/>
+    <LutVal key="127" value="61"/>
+    <LutVal key="128" value="57"/>
+    <LutVal key="129" value="54"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="9" KeyType="eta">
+    <LutVal key="110" value="19"/>
+    <LutVal key="111" value="14"/>
+    <LutVal key="112" value="9"/>
+    <LutVal key="113" value="8"/>
+    <LutVal key="114" value="4"/>
+    <LutVal key="115" value="1"/>
+    <LutVal key="116" value="-2"/>
+    <LutVal key="117" value="-8"/>
+    <LutVal key="118" value="-11"/>
+    <LutVal key="119" value="-15"/>
+    <LutVal key="121" value="-21"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="10" KeyType="none">
+    <LutVal key="0" value="-18"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="11" KeyType="none">
+    <LutVal key="0" value="17"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="12" KeyType="none">
+    <LutVal key="0" value="55"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="13" KeyType="none">
+    <LutVal key="0" value="80"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="14" KeyType="none">
+    <LutVal key="0" value="122"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="15" KeyType="eta">
+    <LutVal key="86" value="150"/>
+    <LutVal key="92" value="123"/>
+    <LutVal key="93" value="122"/>
+    <LutVal key="100" value="85"/>
+    <LutVal key="101" value="84"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="16" KeyType="eta">
+    <LutVal key="92" value="153"/>
+    <LutVal key="99" value="123"/>
+    <LutVal key="100" value="122"/>
+    <LutVal key="108" value="83"/>
+    <LutVal key="109" value="83"/>
+  </Lut>
+  <Lut RefLayer="0" Layer="17" KeyType="eta">
+    <LutVal key="107" value="153"/>
+    <LutVal key="115" value="123"/>
+    <LutVal key="124" value="83"/>
+    <LutVal key="125" value="83"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="0" KeyType="quality">
+    <LutVal key="2" value="-95"/>
+    <LutVal key="3" value="-67"/>
+    <LutVal key="4" value="-81"/>
+    <LutVal key="5" value="-81"/>
+    <LutVal key="6" value="-81"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="1" KeyType="none"/>
+  <Lut RefLayer="1" Layer="2" KeyType="quality"/>
+  <Lut RefLayer="1" Layer="3" KeyType="none"/>
+  <Lut RefLayer="1" Layer="4" KeyType="quality">
+    <LutVal key="2" value="66"/>
+    <LutVal key="3" value="80"/>
+    <LutVal key="4" value="73"/>
+    <LutVal key="5" value="73"/>
+    <LutVal key="6" value="73"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="5" KeyType="none"/>
+  <Lut RefLayer="1" Layer="6" KeyType="eta">
+    <LutVal key="83" value="100"/>
+    <LutVal key="84" value="96"/>
+    <LutVal key="85" value="91"/>
+    <LutVal key="86" value="85"/>
+    <LutVal key="87" value="80"/>
+    <LutVal key="88" value="75"/>
+    <LutVal key="89" value="71"/>
+    <LutVal key="90" value="65"/>
+    <LutVal key="91" value="60"/>
+    <LutVal key="92" value="55"/>
+    <LutVal key="93" value="49"/>
+    <LutVal key="94" value="43"/>
+    <LutVal key="95" value="39"/>
+    <LutVal key="96" value="33"/>
+    <LutVal key="97" value="28"/>
+    <LutVal key="98" value="22"/>
+    <LutVal key="99" value="17"/>
+    <LutVal key="100" value="10"/>
+    <LutVal key="101" value="3"/>
+    <LutVal key="102" value="-0"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="7" KeyType="eta">
+    <LutVal key="93" value="105"/>
+    <LutVal key="94" value="100"/>
+    <LutVal key="95" value="99"/>
+    <LutVal key="96" value="98"/>
+    <LutVal key="97" value="93"/>
+    <LutVal key="98" value="88"/>
+    <LutVal key="99" value="85"/>
+    <LutVal key="100" value="78"/>
+    <LutVal key="101" value="74"/>
+    <LutVal key="102" value="70"/>
+    <LutVal key="103" value="62"/>
+    <LutVal key="104" value="62"/>
+    <LutVal key="105" value="53"/>
+    <LutVal key="106" value="53"/>
+    <LutVal key="107" value="48"/>
+    <LutVal key="108" value="40"/>
+    <LutVal key="109" value="29"/>
+    <LutVal key="110" value="37"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="8" KeyType="eta">
+    <LutVal key="102" value="106"/>
+    <LutVal key="103" value="103"/>
+    <LutVal key="104" value="101"/>
+    <LutVal key="105" value="97"/>
+    <LutVal key="106" value="95"/>
+    <LutVal key="107" value="89"/>
+    <LutVal key="108" value="84"/>
+    <LutVal key="109" value="83"/>
+    <LutVal key="110" value="76"/>
+    <LutVal key="111" value="71"/>
+    <LutVal key="112" value="67"/>
+    <LutVal key="113" value="62"/>
+    <LutVal key="114" value="62"/>
+    <LutVal key="115" value="56"/>
+    <LutVal key="116" value="49"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="9" KeyType="eta">
+    <LutVal key="110" value="-60"/>
+    <LutVal key="111" value="-63"/>
+    <LutVal key="115" value="-65"/>
+    <LutVal key="116" value="-74"/>
+    <LutVal key="117" value="-82"/>
+    <LutVal key="118" value="-90"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="10" KeyType="none">
+    <LutVal key="0" value="-103"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="11" KeyType="none">
+    <LutVal key="0" value="-61"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="12" KeyType="none">
+    <LutVal key="0" value="-15"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="13" KeyType="none">
+    <LutVal key="0" value="14"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="14" KeyType="none">
+    <LutVal key="0" value="64"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="15" KeyType="eta">
+    <LutVal key="86" value="97"/>
+    <LutVal key="92" value="65"/>
+    <LutVal key="93" value="64"/>
+    <LutVal key="100" value="20"/>
+    <LutVal key="101" value="19"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="16" KeyType="eta">
+    <LutVal key="92" value="100"/>
+    <LutVal key="99" value="65"/>
+    <LutVal key="100" value="65"/>
+    <LutVal key="108" value="18"/>
+    <LutVal key="109" value="17"/>
+  </Lut>
+  <Lut RefLayer="1" Layer="17" KeyType="eta">
+    <LutVal key="107" value="100"/>
+    <LutVal key="115" value="65"/>
+  </Lut>
+</ExtrapolationFactors>
